@@ -1,0 +1,45 @@
+{
+  "source": "Aven Support Page",
+  "url": "https://www.aven.com/support/",
+  "scraped_date": "2025-01-13",
+  "company_info": {
+    "name": "Aven",
+    "product": "Aven Card",
+    "description": "A credit card backed by home equity (HELOC)",
+    "contact": {
+      "phone": "(888) 966-4655",
+      "support_phone": "(323) 329-6731",
+      "media_phone": "(415) 610-8313",
+      "email": "support@aven.com",
+      "corporate_address": "548 Market St. 99555, San Francisco, California 94104",
+      "other_location": "330 Primrose Road, Suite 412, Burlingame, CA 94010"
+    }
+  },
+  "key_features": {
+    "card_type": "Home Equity Line of Credit accessed through a credit card",
+    "acceptance": "Wherever VISA cards are accepted",
+    "max_credit_line": "$250,000",
+    "cashback": "2% on eligible purchases when autopay is enabled",
+    "cash_outs": "Transfer cash directly to bank account",
+    "balance_transfers": "Transfer from high interest credit cards",
+    "rate_type": "Variable rate based on Prime Rate or Federal Funds Target Rate",
+    "max_apr": "18%",
+    "fees": "No application fees, annual fees, or account closing fees"
+  },
+  "trending_questions": [
+    "Is the rate variable?",
+    "How does Aven determine the credit line size and interest rate?",
+    "Does Aven offer a fixed rate?",
+    "Is Aven a credit card or a home equity line of credit?"
+  ],
+  "faq_categories": [
+    "Payments",
+    "Before You Apply",
+    "Offer, Rates & Fees",
+    "Application",
+    "Account",
+    "Online Notary",
+    "Debt Protection"
+  ],
+  "detailed_content": "Comprehensive FAQ content covering eligibility criteria, payment calculations, interest rates, application process, account management, and debt protection options..."
+} 
