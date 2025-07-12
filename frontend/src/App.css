@@ -40,7 +40,7 @@ html, body, #root {
 *:focus-visible {
   outline: 2px solid #10a37f;
   outline-offset: 2px;
-}
+  }
 
 /* Loading animation for message content */
 @keyframes shimmer {

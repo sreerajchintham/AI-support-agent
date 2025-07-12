@@ -21,7 +21,7 @@
     "aven",
     "chatbot"
   ],
-  "author": "Your Name",
+  "author": "Sreeraj Chintham",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2"
