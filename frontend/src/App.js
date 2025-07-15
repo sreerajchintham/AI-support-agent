@@ -1,78 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  CssBaseline, 
-  ThemeProvider, 
-  createTheme,
-  useMediaQuery
-} from '@mui/material';
+import React, { useState } from 'react';
+import { Box, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import { ChatProvider } from './context/ChatContext';
+import { VapiProvider } from './context/VapiContext';
 import ChatInterface from './components/ChatInterface';
 import Sidebar from './components/Sidebar';
-import { ChatProvider } from './context/ChatContext';
 import './App.css';
 
-// Aven-inspired light theme with white and black colors
+// Create Material-UI theme
 const theme = createTheme({
   palette: {
-    mode: 'light',
     primary: {
-      main: '#000000',
-      dark: '#1a1a1a',
-      light: '#333333',
+      main: '#1976d2',
     },
     secondary: {
-      main: '#666666',
+      main: '#dc004e',
     },
     background: {
-      default: '#ffffff',
-      paper: '#f8f9fa',
-    },
-    text: {
-      primary: '#000000',
-      secondary: '#666666',
-    },
-    divider: '#e0e0e0',
-    action: {
-      hover: '#f5f5f5',
-      selected: '#f0f0f0',
+      default: '#f5f5f5',
     },
   },
   typography: {
-    fontFamily: '"Söhne", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", sans-serif',
-    fontSize: 14,
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
   },
   components: {
-    MuiCssBaseline: {
-      styleOverrides: {
-        body: {
-          fontFamily: '"Söhne", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", sans-serif',
-        },
-      },
-    },
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: 'none',
-          borderRadius: 6,
+          borderRadius: 8,
         },
       },
     },
-    MuiTextField: {
+    MuiPaper: {
       styleOverrides: {
         root: {
-          '& .MuiOutlinedInput-root': {
-            backgroundColor: '#ffffff',
-            borderRadius: 12,
-            '& fieldset': {
-              borderColor: '#e0e0e0',
-            },
-            '&:hover fieldset': {
-              borderColor: '#bdbdbd',
-            },
-            '&.Mui-focused fieldset': {
-              borderColor: '#000000',
-            },
-          },
+          borderRadius: 12,
         },
       },
     },
@@ -80,16 +41,9 @@ const theme = createTheme({
 });
 
 function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  useEffect(() => {
-    if (isMobile) {
-      setSidebarOpen(false);
-    }
-  }, [isMobile]);
-
-  const toggleSidebar = () => {
+  const handleToggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
@@ -97,35 +51,22 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <ChatProvider>
-        <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-          {/* Sidebar */}
-          <Sidebar 
-            open={sidebarOpen} 
-            onToggle={toggleSidebar}
-            isMobile={isMobile}
-          />
-          
-          {/* Main Chat Area */}
-          <Box
-            component="main"
-            sx={{
-              flexGrow: 1,
-              height: '100vh',
-              overflow: 'hidden',
-              backgroundColor: 'background.default',
-              transition: theme.transitions.create('margin', {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.leavingScreen,
-              }),
-              marginLeft: 0, // Keep main content in place
-              width: '100%', // Ensure full width
-            }}
-          >
-            <ChatInterface onToggleSidebar={toggleSidebar} />
+        <VapiProvider>
+          <Box sx={{ display: 'flex', height: '100vh' }}>
+            <Sidebar 
+              open={sidebarOpen} 
+              onClose={() => setSidebarOpen(false)}
+            />
+            <Box sx={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}>
+              <ChatInterface onToggleSidebar={handleToggleSidebar} />
+            </Box>
           </Box>
-
-          {/* Overlay is handled by the temporary drawer */}
-        </Box>
+        </VapiProvider>
       </ChatProvider>
     </ThemeProvider>
   );

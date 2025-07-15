@@ -11,10 +11,14 @@ import {
   Menu as MenuIcon,
 } from '@mui/icons-material';
 import { useChat } from '../context/ChatContext';
+import { useVapi } from '../context/VapiContext';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
 import WelcomeScreen from './WelcomeScreen';
 import SimpleLoadingIndicator from './SimpleLoadingIndicator';
+import VoiceButton from './VoiceButton';
+import VoiceTranscript from './VoiceTranscript';
+import AvenLogo from './AvenLogo';
 
 function ChatInterface({ onToggleSidebar }) {
   const { 
@@ -26,6 +30,11 @@ function ChatInterface({ onToggleSidebar }) {
     loadSuggestions,
     sendMessage,
   } = useChat();
+
+  const {
+    isCallActive,
+    error: voiceError
+  } = useVapi();
 
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
@@ -52,158 +61,149 @@ function ChatInterface({ onToggleSidebar }) {
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
-      setShowScrollButton(!isNearBottom);
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShowScrollButton(!isNearBottom && messages.length > 0);
     };
 
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [messages.length]);
 
-  // Handle suggestion clicks
-  const handleSuggestionClick = (suggestion) => {
-    sendMessage(suggestion);
-  };
-
-  // Handle message submission
-  const handleSubmit = async (message) => {
-    if (message.trim()) {
-      await sendMessage(message);
-    }
-  };
-
-
-
-  // Show welcome screen when no messages
   const showWelcome = messages.length === 0 && !isLoading;
 
   return (
-    <Box
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: 'background.default',
-      }}
-    >
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       {/* Header */}
       <Box
         sx={{
-          borderBottom: 1,
-          borderColor: 'divider',
-          px: 2,
-          py: 1.5,
           display: 'flex',
           alignItems: 'center',
-          gap: 1,
-          backgroundColor: 'background.paper',
+          justifyContent: 'space-between',
+          p: 2,
+          borderBottom: '1px solid',
+          borderColor: '#e0e0e0',
+          backgroundColor: '#fff',
+          boxShadow: 1,
         }}
       >
-        <IconButton
-          size="small"
-          onClick={onToggleSidebar}
-          sx={{ mr: 1 }}
-        >
-          <MenuIcon />
-        </IconButton>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          {currentSession?.title || 'Aven AI Support'}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <IconButton
+            edge="start"
+            aria-label="menu"
+            onClick={onToggleSidebar}
+            sx={{ color: '#000' }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <AvenLogo size="small" />
+            <Typography variant="h6" component="h1" sx={{ fontWeight: 600, color: '#000' }}>
+              AI Support
+            </Typography>
+          </Box>
+          {currentSession && (
+            <Typography variant="body2" sx={{ color: '#666' }}>
+              Session: {currentSession.name}
+            </Typography>
+          )}
+        </Box>
+
+        {/* Voice Button in Header */}
+        <VoiceButton />
       </Box>
 
-      {/* Messages Area */}
-      <Box
-        ref={containerRef}
-        sx={{
-          flexGrow: 1,
-          overflow: 'auto',
-          position: 'relative',
-        }}
-      >
-        {showWelcome ? (
-          <WelcomeScreen 
-            suggestions={suggestions}
-            onSuggestionClick={handleSuggestionClick}
-          />
-        ) : (
-          <Container maxWidth="md" sx={{ py: 3 }}>
-            {/* Error Alert */}
-            {error && (
-              <Fade in={Boolean(error)}>
-                <Alert 
-                  severity="error" 
-                  sx={{ mb: 2 }}
-                  onClose={() => {/* Clear error if needed */}}
-                >
-                  {error}
-                </Alert>
-              </Fade>
-            )}
-
-            {/* Messages */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {messages.map((message) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                />
-              ))}
-              
-              {/* Simple Loading Indicator */}
-              {isLoading && (
-                <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
-                  <SimpleLoadingIndicator message="AI is thinking" />
+      {/* Main Content */}
+      <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
+        {/* Chat Area */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Messages Container */}
+          <Box
+            ref={containerRef}
+            sx={{
+              flex: 1,
+              overflow: 'auto',
+              p: 2,
+              backgroundColor: '#fafafa',
+            }}
+          >
+            <Container maxWidth="md" sx={{ py: 2 }}>
+              {showWelcome ? (
+                <WelcomeScreen suggestions={suggestions} onSendMessage={sendMessage} />
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {messages.map((message) => (
+                    <MessageBubble key={message.id} message={message} />
+                  ))}
+                  <div ref={messagesEndRef} />
                 </Box>
               )}
-            </Box>
+            </Container>
+          </Box>
 
-            {/* Scroll anchor */}
-            <div ref={messagesEndRef} />
-          </Container>
-        )}
-        
-        {/* Global Loading Indicator - Always visible when loading */}
-        {isLoading && (
-          <Container maxWidth="md" sx={{ py: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
-              <SimpleLoadingIndicator message="AI is thinking" />
+          {/* Loading Indicator */}
+          {isLoading && (
+            <Box sx={{ p: 2, backgroundColor: 'background.paper' }}>
+              <Container maxWidth="md">
+                <SimpleLoadingIndicator />
+              </Container>
             </Box>
-          </Container>
-        )}
-      </Box>
+          )}
 
-      {/* Input Area */}
-      <Box
-        sx={{
-          borderTop: 1,
-          borderColor: 'divider',
-          backgroundColor: 'background.paper',
-          p: 2,
-        }}
-      >
-        <ChatInput
-          onSubmit={handleSubmit}
-          disabled={isLoading}
-          placeholder={
-            isLoading 
-              ? "AI is processing your request..." 
-              : "Ask me anything about Aven..."
-          }
-        />
+          {/* Error Display */}
+          {(error || voiceError) && (
+            <Box sx={{ p: 2 }}>
+              <Container maxWidth="md">
+                <Fade in={true}>
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {error || voiceError}
+                  </Alert>
+                </Fade>
+              </Container>
+            </Box>
+          )}
+
+          {/* Chat Input */}
+          <Box
+            sx={{
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              backgroundColor: 'background.paper',
+            }}
+          >
+            <Container maxWidth="md" sx={{ py: 2 }}>
+              <ChatInput onSendMessage={sendMessage} />
+            </Container>
+          </Box>
+        </Box>
+
+        {/* Voice Transcript Sidebar */}
+        {isCallActive && (
+          <Box
+            sx={{
+              width: 400,
+              borderLeft: '1px solid',
+              borderColor: 'divider',
+              backgroundColor: 'background.paper',
+              p: 2,
+              overflow: 'hidden'
+            }}
+          >
+            <VoiceTranscript />
+          </Box>
+        )}
       </Box>
 
       {/* Scroll to Bottom Button */}
-      <Fade in={showScrollButton}>
+      {showScrollButton && (
         <Box
           sx={{
-            position: 'absolute',
-            bottom: 90,
-            right: 20,
-            zIndex: 1,
+            position: 'fixed',
+            bottom: 100,
+            right: 24,
+            zIndex: 1000,
           }}
         >
           <IconButton
-            size="medium"
             onClick={scrollToBottom}
             sx={{
               backgroundColor: 'primary.main',
@@ -213,13 +213,12 @@ function ChatInterface({ onToggleSidebar }) {
               },
               boxShadow: 2,
             }}
+            size="large"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M12 16l-6-6h12l-6 6z"/>
-            </svg>
+            ↓
           </IconButton>
         </Box>
-      </Fade>
+      )}
     </Box>
   );
 }

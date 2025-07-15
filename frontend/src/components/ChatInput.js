@@ -95,16 +95,16 @@ function ChatInput({ disabled, onSubmit, placeholder = "Ask me anything about Av
         sx={{
           flex: 1,
           border: '1px solid',
-          borderColor: 'divider',
+          borderColor: '#e0e0e0',
           borderRadius: 2,
           overflow: 'hidden',
-          backgroundColor: 'background.default',
+          backgroundColor: '#fff',
           '&:hover': {
-            borderColor: 'primary.main',
+            borderColor: '#000',
           },
           '&:focus-within': {
-            borderColor: 'primary.main',
-            boxShadow: `0 0 0 2px ${theme.palette.primary.main}20`,
+            borderColor: '#000',
+            boxShadow: '0 0 0 2px rgba(0, 0, 0, 0.1)',
           },
         }}
       >
@@ -139,8 +139,9 @@ function ChatInput({ disabled, onSubmit, placeholder = "Ask me anything about Av
               fontSize: '14px',
               lineHeight: '24px',
               resize: 'none',
+              color: '#000',
               '&::placeholder': {
-                color: 'text.secondary',
+                color: '#666',
                 opacity: 0.7,
               },
             },
@@ -153,17 +154,15 @@ function ChatInput({ disabled, onSubmit, placeholder = "Ask me anything about Av
                   disabled={!canSend}
                   size="small"
                   sx={{
-                    color: canSend ? 'primary.main' : 'text.disabled',
-                    backgroundColor: canSend ? 'primary.main' : 'action.disabled',
-                    color: canSend ? 'white' : 'text.disabled',
+                    backgroundColor: canSend ? '#000' : '#e0e0e0',
+                    color: canSend ? 'white' : '#999',
                     width: 32,
                     height: 32,
                     '&:hover': {
-                      backgroundColor: canSend ? 'primary.dark' : 'action.disabled',
+                      backgroundColor: canSend ? '#333' : '#e0e0e0',
                     },
                     '&.Mui-disabled': {
-                      backgroundColor: 'action.disabled',
-                      color: 'text.disabled',
+                      backgroundColor: '#e0e0e0',
                     },
                   }}
                 >

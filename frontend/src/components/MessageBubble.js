@@ -1,29 +1,27 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
   Paper,
   Typography,
   Avatar,
   IconButton,
-  Chip,
   Collapse,
-  Divider,
-  Tooltip,
-  useTheme,
-  Fade,
+  Chip,
   keyframes,
 } from '@mui/material';
 import {
   Person as PersonIcon,
-  Psychology as AIIcon,
+  SmartToy as BotIcon,
   ContentCopy as CopyIcon,
+  Check as CheckIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  Source as SourceIcon,
+  AccessTime as TimeIcon,
 } from '@mui/icons-material';
+import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 // Animation for message appearance
 const slideInUp = keyframes`
@@ -38,9 +36,9 @@ const slideInUp = keyframes`
 `;
 
 function MessageBubble({ message }) {
-  const theme = useTheme();
-  const [showSources, setShowSources] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   const isUser = message.role === 'user';
   const isError = message.isError;
@@ -48,8 +46,8 @@ function MessageBubble({ message }) {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(message.content);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy text:', err);
     }
@@ -76,14 +74,15 @@ function MessageBubble({ message }) {
       {/* Avatar */}
       <Avatar
         sx={{
-          bgcolor: isUser ? 'primary.main' : 'primary.main',
-          color: isUser ? 'primary.contrastText' : 'primary.contrastText',
+          bgcolor: '#fff',
+          color: '#000',
+          border: '2px solid #000',
           width: 32,
           height: 32,
           fontSize: '14px',
         }}
       >
-        {isUser ? <PersonIcon fontSize="small" /> : <AIIcon fontSize="small" />}
+        {isUser ? <PersonIcon fontSize="small" /> : <BotIcon fontSize="small" />}
       </Avatar>
 
       {/* Message Content */}
@@ -99,18 +98,18 @@ function MessageBubble({ message }) {
           sx={{
             p: 2,
             backgroundColor: isUser 
-              ? 'primary.main' 
+              ? '#000' 
               : isError 
-                ? 'error.dark' 
-                : 'background.paper',
-            color: isUser ? 'primary.contrastText' : 'text.primary',
+                ? '#f5f5f5' 
+                : '#fff',
+            color: isUser ? '#fff' : '#000',
             borderRadius: 2,
             border: '1px solid',
             borderColor: isUser 
-              ? 'primary.main' 
+              ? '#000' 
               : isError 
-                ? 'error.main' 
-                : 'divider',
+                ? '#d32f2f' 
+                : '#e0e0e0',
           }}
         >
           {/* Message Header */}
@@ -143,7 +142,7 @@ function MessageBubble({ message }) {
                     const match = /language-(\w+)/.exec(className || '');
                     return !inline && match ? (
                       <SyntaxHighlighter
-                        style={oneLight}
+                        style={tomorrow}
                         language={match[1]}
                         PreTag="div"
                         customStyle={{
@@ -197,41 +196,38 @@ function MessageBubble({ message }) {
           {/* Action Buttons */}
           {!isUser && (
             <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, gap: 1 }}>
-              <Tooltip title={copySuccess ? 'Copied!' : 'Copy message'}>
+              <IconButton
+                size="small"
+                onClick={handleCopy}
+                sx={{ 
+                  color: 'text.secondary',
+                  '&:hover': { color: 'text.primary' },
+                }}
+              >
+                <CopyIcon fontSize="small" />
+                {copied && <CheckIcon fontSize="small" sx={{ ml: 0.5 }} />}
+              </IconButton>
+
+              {/* Sources button */}
+              {message.sources && message.sources.length > 0 && (
                 <IconButton
                   size="small"
-                  onClick={handleCopy}
+                  onClick={() => setExpanded(!expanded)}
                   sx={{ 
                     color: 'text.secondary',
                     '&:hover': { color: 'text.primary' },
                   }}
                 >
-                  <CopyIcon fontSize="small" />
+                  <ExpandMoreIcon fontSize="small" />
+                  <Typography variant="caption" sx={{ ml: 0.5 }}>
+                    {message.sources.length}
+                  </Typography>
+                  {expanded ? (
+                    <ExpandLessIcon fontSize="small" />
+                  ) : (
+                    <ExpandMoreIcon fontSize="small" />
+                  )}
                 </IconButton>
-              </Tooltip>
-
-              {/* Sources button */}
-              {message.sources && message.sources.length > 0 && (
-                <Tooltip title="View sources">
-                  <IconButton
-                    size="small"
-                    onClick={() => setShowSources(!showSources)}
-                    sx={{ 
-                      color: 'text.secondary',
-                      '&:hover': { color: 'text.primary' },
-                    }}
-                  >
-                    <SourceIcon fontSize="small" />
-                    <Typography variant="caption" sx={{ ml: 0.5 }}>
-                      {message.sources.length}
-                    </Typography>
-                    {showSources ? (
-                      <ExpandLessIcon fontSize="small" />
-                    ) : (
-                      <ExpandMoreIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </Tooltip>
               )}
             </Box>
           )}
@@ -239,7 +235,7 @@ function MessageBubble({ message }) {
 
         {/* Sources Section */}
         {message.sources && message.sources.length > 0 && (
-          <Collapse in={showSources}>
+          <Collapse in={expanded}>
             <Paper
               elevation={0}
               sx={{
@@ -254,7 +250,7 @@ function MessageBubble({ message }) {
               <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
                 Sources ({message.sources.length})
               </Typography>
-              <Divider sx={{ mb: 1 }} />
+              {/* <Divider sx={{ mb: 1 }} /> */} {/* Removed Divider as per new_code */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {message.sources.map((source, index) => (
                   <Box key={index}>

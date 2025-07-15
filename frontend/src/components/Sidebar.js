@@ -12,23 +12,20 @@ import {
   Divider,
   Menu,
   MenuItem,
-  Tooltip,
-  useTheme,
 } from '@mui/material';
 import {
   Add as AddIcon,
-  Menu as MenuIcon,
   MoreVert as MoreVertIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
 import { useChat } from '../context/ChatContext';
+import AvenLogo from './AvenLogo';
 
 const DRAWER_WIDTH = 260;
 
-function Sidebar({ open, onToggle, isMobile }) {
-  const theme = useTheme();
+function Sidebar({ open, onClose }) {
   const { 
     sessions, 
     currentSession, 
@@ -46,7 +43,7 @@ function Sidebar({ open, onToggle, isMobile }) {
 
   const handleSessionClick = (session) => {
     setSession(session);
-    onToggle(); // Close sidebar after selecting a session
+    if (onClose) onClose(); // Close sidebar after selecting a session
   };
 
   const handleMenuOpen = (event, sessionId) => {
@@ -89,23 +86,26 @@ function Sidebar({ open, onToggle, isMobile }) {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: 'background.paper',
+        backgroundColor: '#fff',
         borderRight: '1px solid',
-        borderColor: 'divider',
+        borderColor: '#e0e0e0',
       }}
     >
       {/* Header */}
       <Box sx={{ p: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <IconButton 
-            onClick={onToggle}
-            sx={{ mr: 1, color: 'text.primary' }}
+            onClick={onClose}
+            sx={{ mr: 1, color: '#000' }}
           >
             <CloseIcon />
           </IconButton>
-          <Typography variant="h6" sx={{ color: 'text.primary', flexGrow: 1 }}>
-            Aven Support
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
+            <AvenLogo size="small" />
+            <Typography variant="h6" sx={{ color: '#000', fontWeight: 600 }}>
+              Support
+            </Typography>
+          </Box>
         </Box>
         
         <Button
@@ -114,11 +114,12 @@ function Sidebar({ open, onToggle, isMobile }) {
           startIcon={<AddIcon />}
           onClick={handleNewChat}
           sx={{
-            color: 'text.primary',
-            borderColor: 'divider',
+            color: '#000',
+            borderColor: '#e0e0e0',
+            backgroundColor: '#fff',
             '&:hover': {
-              borderColor: 'primary.main',
-              backgroundColor: 'action.hover',
+              borderColor: '#000',
+              backgroundColor: '#f5f5f5',
             },
           }}
         >
@@ -126,13 +127,13 @@ function Sidebar({ open, onToggle, isMobile }) {
         </Button>
       </Box>
 
-      <Divider sx={{ borderColor: 'divider' }} />
+      <Divider sx={{ borderColor: '#e0e0e0' }} />
 
       {/* Chat History */}
       <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
         {sessions.length === 0 ? (
           <Box sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: '#666' }}>
               No chat history yet.
               <br />
               Start a new conversation!
@@ -150,13 +151,13 @@ function Sidebar({ open, onToggle, isMobile }) {
                     my: 0.5,
                     borderRadius: 1,
                     '&.Mui-selected': {
-                      backgroundColor: 'action.selected',
+                      backgroundColor: '#f0f0f0',
                       '&:hover': {
-                        backgroundColor: 'action.hover',
+                        backgroundColor: '#e8e8e8',
                       },
                     },
                     '&:hover': {
-                      backgroundColor: 'action.hover',
+                      backgroundColor: '#f5f5f5',
                     },
                   }}
                 >
@@ -165,21 +166,21 @@ function Sidebar({ open, onToggle, isMobile }) {
                     secondary={formatDate(session.lastActivity)}
                     primaryTypographyProps={{
                       variant: 'body2',
-                      color: 'text.primary',
+                      color: '#000',
                       noWrap: true,
                     }}
                     secondaryTypographyProps={{
                       variant: 'caption',
-                      color: 'text.secondary',
+                      color: '#666',
                     }}
                   />
                   <IconButton
                     size="small"
                     onClick={(e) => handleMenuOpen(e, session.id)}
                     sx={{ 
-                      color: 'text.secondary',
+                      color: '#666',
                       opacity: 0.7,
-                      '&:hover': { opacity: 1 },
+                      '&:hover': { opacity: 1, color: '#000' },
                     }}
                   >
                     <MoreVertIcon fontSize="small" />
@@ -192,11 +193,11 @@ function Sidebar({ open, onToggle, isMobile }) {
       </Box>
 
       {/* Footer */}
-      <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-        <Typography variant="caption" color="text.secondary" align="center" display="block">
+      <Box sx={{ p: 2, borderTop: '1px solid', borderColor: '#e0e0e0' }}>
+        <Typography variant="caption" sx={{ color: '#666' }} align="center" display="block">
           AI Support Agent for Aven
         </Typography>
-        <Typography variant="caption" color="text.secondary" align="center" display="block">
+        <Typography variant="caption" sx={{ color: '#666' }} align="center" display="block">
           Powered by OpenAI & Pinecone
         </Typography>
       </Box>
@@ -208,17 +209,17 @@ function Sidebar({ open, onToggle, isMobile }) {
         onClose={handleMenuClose}
         PaperProps={{
           sx: {
-            backgroundColor: 'background.paper',
+            backgroundColor: '#fff',
             border: '1px solid',
-            borderColor: 'divider',
+            borderColor: '#e0e0e0',
           },
         }}
       >
-        <MenuItem onClick={handleMenuClose} disabled>
+        <MenuItem onClick={handleMenuClose} disabled sx={{ color: '#999' }}>
           <EditIcon fontSize="small" sx={{ mr: 1 }} />
           Rename (Coming Soon)
         </MenuItem>
-        <MenuItem onClick={handleDeleteSession} sx={{ color: 'error.main' }}>
+        <MenuItem onClick={handleDeleteSession} sx={{ color: '#d32f2f' }}>
           <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
           Delete Chat
         </MenuItem>
@@ -231,7 +232,7 @@ function Sidebar({ open, onToggle, isMobile }) {
     <Drawer
       variant="temporary"
       open={open}
-      onClose={onToggle}
+      onClose={onClose}
       ModalProps={{
         keepMounted: true, // Better performance
       }}

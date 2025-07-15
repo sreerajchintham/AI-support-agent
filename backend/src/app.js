@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const config = require('../config');
+const vapiService = require('./services/vapiService');
 
 const app = express();
 
@@ -45,23 +46,35 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/vapi', require('./routes/vapi'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ 
     error: 'Something went wrong!',
-    message: config.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
   });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Endpoint not found' });
-});
+// Initialize Vapi service when server starts
+async function initializeServices() {
+  try {
+    if (config.VAPI_API_KEY) {
+      await vapiService.initialize();
+    } else {
+      console.log('⚠️ Vapi not configured - voice features will be unavailable');
+    }
+  } catch (error) {
+    console.error('⚠️ Failed to initialize Vapi service:', error.message);
+    console.log('💡 Voice features will be unavailable until Vapi is properly configured');
+  }
+}
 
 const PORT = config.PORT;
-app.listen(PORT, () => {
-  console.log(`🚀 AI Support Agent API running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-}); 
+app.listen(PORT, async () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  await initializeServices();
+});
+
+module.exports = app; 

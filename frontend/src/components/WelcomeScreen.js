@@ -14,23 +14,26 @@ import {
   Security as SecurityIcon,
   Speed as SpeedIcon,
 } from '@mui/icons-material';
+import AvenLogo from './AvenLogo';
 
-function WelcomeScreen({ suggestions, onSuggestionClick }) {
-  const theme = useTheme();
+function WelcomeScreen({ suggestions, onSendMessage }) {
+  const handleSuggestionClick = (suggestion) => {
+    onSendMessage(suggestion);
+  };
 
   const features = [
     {
-      icon: <SupportIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
+      icon: <SupportIcon sx={{ fontSize: 32, color: '#000' }} />,
       title: 'Expert Support',
       description: 'Get answers about Aven Card features, rates, and applications'
     },
     {
-      icon: <SpeedIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
+      icon: <SpeedIcon sx={{ fontSize: 32, color: '#000' }} />,
       title: 'Instant Responses',
       description: 'Powered by AI for quick and accurate information'
     },
     {
-      icon: <SecurityIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
+      icon: <SecurityIcon sx={{ fontSize: 32, color: '#000' }} />,
       title: 'Secure & Private',
       description: 'Your conversations are protected and confidential'
     }
@@ -56,20 +59,20 @@ function WelcomeScreen({ suggestions, onSuggestionClick }) {
           mb: 6,
         }}
       >
-        {/* Logo/Icon */}
+        {/* Aven Logo */}
         <Box
           sx={{
-            width: 80,
-            height: 80,
+            mb: 3,
+            p: 2,
             borderRadius: 2,
-            backgroundColor: 'primary.main',
+            backgroundColor: '#fff',
+            border: '2px solid #000',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            mb: 3,
           }}
         >
-          <AIIcon sx={{ fontSize: 40, color: 'white' }} />
+          <AvenLogo size="large" />
         </Box>
 
         {/* Welcome Text */}
@@ -79,7 +82,7 @@ function WelcomeScreen({ suggestions, onSuggestionClick }) {
           sx={{
             fontWeight: 600,
             mb: 2,
-            color: 'text.primary',
+            color: '#000',
             fontSize: { xs: '2rem', md: '3rem' },
           }}
         >
@@ -107,13 +110,13 @@ function WelcomeScreen({ suggestions, onSuggestionClick }) {
                 sx={{
                   p: 3,
                   textAlign: 'center',
-                  backgroundColor: 'background.paper',
+                  backgroundColor: '#fff',
                   border: '1px solid',
-                  borderColor: 'divider',
+                  borderColor: '#e0e0e0',
                   borderRadius: 2,
                   transition: 'all 0.2s ease-in-out',
                   '&:hover': {
-                    borderColor: 'primary.main',
+                    borderColor: '#000',
                     transform: 'translateY(-2px)',
                   },
                 }}
@@ -136,7 +139,7 @@ function WelcomeScreen({ suggestions, onSuggestionClick }) {
         <Typography
           variant="h6"
           sx={{
-            color: 'text.primary',
+            color: '#000',
             mb: 3,
             fontWeight: 600,
           }}
@@ -157,7 +160,7 @@ function WelcomeScreen({ suggestions, onSuggestionClick }) {
             <Chip
               key={index}
               label={question}
-              onClick={() => onSuggestionClick(question)}
+              onClick={() => handleSuggestionClick(question)}
               variant="outlined"
               sx={{
                 mb: 1,
@@ -168,12 +171,12 @@ function WelcomeScreen({ suggestions, onSuggestionClick }) {
                   whiteSpace: 'normal',
                   padding: '8px 12px',
                 },
-                color: 'text.primary',
-                borderColor: 'divider',
-                backgroundColor: 'background.paper',
+                color: '#000',
+                borderColor: '#e0e0e0',
+                backgroundColor: '#fff',
                 '&:hover': {
-                  backgroundColor: 'action.hover',
-                  borderColor: 'primary.main',
+                  backgroundColor: '#f5f5f5',
+                  borderColor: '#000',
                   transform: 'translateY(-1px)',
                 },
                 cursor: 'pointer',
@@ -186,12 +189,12 @@ function WelcomeScreen({ suggestions, onSuggestionClick }) {
         {/* Disclaimer */}
         <Typography
           variant="caption"
-          color="text.secondary"
           sx={{
             mt: 4,
             px: 2,
             textAlign: 'center',
             maxWidth: 600,
+            color: '#666',
           }}
         >
           This AI assistant provides general information about Aven products. For account-specific 
