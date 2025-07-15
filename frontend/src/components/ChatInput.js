@@ -13,7 +13,7 @@ import {
 } from '@mui/icons-material';
 import { useChat } from '../context/ChatContext';
 
-function ChatInput({ disabled }) {
+function ChatInput({ disabled, onSubmit, placeholder = "Ask me anything about Aven..." }) {
   const theme = useTheme();
   const { sendMessage, isLoading } = useChat();
   const [message, setMessage] = useState('');
@@ -38,20 +38,36 @@ function ChatInput({ disabled }) {
   }, [message]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
+    
     if (!message.trim() || disabled || isLoading) return;
 
     const messageToSend = message.trim();
     setMessage('');
     setRows(1);
-    
-    await sendMessage(messageToSend);
+
+    try {
+      // Use provided onSubmit prop if available, otherwise use sendMessage from context
+      if (onSubmit) {
+        await onSubmit(messageToSend);
+      } else {
+        await sendMessage(messageToSend);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      if (e.shiftKey) {
+        // Allow new line with Shift+Enter
+        return;
+      } else {
+        // Send message with Enter
+        e.preventDefault();
+        handleSubmit();
+      }
     }
   };
 
@@ -62,39 +78,52 @@ function ChatInput({ disabled }) {
   const canSend = message.trim() && !disabled && !isLoading;
 
   return (
-    <Paper
-      elevation={0}
+    <Box
+      component="form"
+      onSubmit={handleSubmit}
       sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 3,
-        backgroundColor: 'background.paper',
-        '&:focus-within': {
-          borderColor: 'primary.main',
-          boxShadow: `0 0 0 1px ${theme.palette.primary.main}`,
-        },
+        display: 'flex',
+        gap: 1,
+        alignItems: 'flex-end',
+        width: '100%',
+        maxWidth: '800px',
+        margin: '0 auto',
       }}
     >
-      <Box sx={{ position: 'relative' }}>
+      <Paper
+        elevation={0}
+        sx={{
+          flex: 1,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 2,
+          overflow: 'hidden',
+          backgroundColor: 'background.default',
+          '&:hover': {
+            borderColor: 'primary.main',
+          },
+          '&:focus-within': {
+            borderColor: 'primary.main',
+            boxShadow: `0 0 0 2px ${theme.palette.primary.main}20`,
+          },
+        }}
+      >
         <TextField
           ref={textFieldRef}
           fullWidth
           multiline
-          minRows={1}
-          maxRows={5}
+          rows={rows}
           value={message}
           onChange={handleChange}
-          onKeyPress={handleKeyPress}
-          placeholder={
-            disabled 
-              ? "Please wait..." 
-              : "Message Aven Support... (Shift + Enter for new line)"
-          }
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
           disabled={disabled}
           variant="outlined"
           sx={{
             '& .MuiOutlinedInput-root': {
               border: 'none',
+              borderRadius: 2,
+              backgroundColor: 'transparent',
               '& fieldset': {
                 border: 'none',
               },
@@ -104,52 +133,48 @@ function ChatInput({ disabled }) {
               '&.Mui-focused fieldset': {
                 border: 'none',
               },
-              backgroundColor: 'transparent',
-              fontSize: '16px',
-              lineHeight: 1.5,
-              py: 1.5,
-              pr: 6, // Space for send button
             },
             '& .MuiInputBase-input': {
+              padding: '12px 16px',
+              fontSize: '14px',
+              lineHeight: '24px',
               resize: 'none',
               '&::placeholder': {
                 color: 'text.secondary',
-                opacity: 0.8,
+                opacity: 0.7,
               },
             },
           }}
-        />
-        
-        {/* Send Button */}
-        <IconButton
-          onClick={handleSubmit}
-          disabled={!canSend}
-          sx={{
-            position: 'absolute',
-            right: 8,
-            bottom: 8,
-            width: 40,
-            height: 40,
-            backgroundColor: canSend ? 'primary.main' : 'action.disabled',
-            color: canSend ? 'primary.contrastText' : 'action.disabled',
-            '&:hover': {
-              backgroundColor: canSend ? 'primary.dark' : 'action.disabled',
-            },
-            '&:disabled': {
-              backgroundColor: 'action.disabled',
-              color: 'action.disabled',
-            },
-            transition: 'all 0.2s ease-in-out',
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end" sx={{ alignSelf: 'flex-end', pb: 1 }}>
+                <IconButton
+                  type="submit"
+                  disabled={!canSend}
+                  size="small"
+                  sx={{
+                    color: canSend ? 'primary.main' : 'text.disabled',
+                    backgroundColor: canSend ? 'primary.main' : 'action.disabled',
+                    color: canSend ? 'white' : 'text.disabled',
+                    width: 32,
+                    height: 32,
+                    '&:hover': {
+                      backgroundColor: canSend ? 'primary.dark' : 'action.disabled',
+                    },
+                    '&.Mui-disabled': {
+                      backgroundColor: 'action.disabled',
+                      color: 'text.disabled',
+                    },
+                  }}
+                >
+                  {isLoading ? <StopIcon fontSize="small" /> : <SendIcon fontSize="small" />}
+                </IconButton>
+              </InputAdornment>
+            ),
           }}
-        >
-          {isLoading ? (
-            <StopIcon fontSize="small" />
-          ) : (
-            <SendIcon fontSize="small" />
-          )}
-        </IconButton>
-      </Box>
-    </Paper>
+        />
+      </Paper>
+    </Box>
   );
 }
 

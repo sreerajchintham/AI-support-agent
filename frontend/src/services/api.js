@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base API configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -130,7 +130,7 @@ export const testRetrieval = async (query, topK = 5) => {
 // Health check
 export const checkHealth = async () => {
   try {
-    const response = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/health`);
+    const response = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/health`);
     return response.data;
   } catch (error) {
     throw new Error('Backend server is not responding');

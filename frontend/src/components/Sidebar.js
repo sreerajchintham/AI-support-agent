@@ -46,9 +46,7 @@ function Sidebar({ open, onToggle, isMobile }) {
 
   const handleSessionClick = (session) => {
     setSession(session);
-    if (isMobile) {
-      onToggle();
-    }
+    onToggle(); // Close sidebar after selecting a session
   };
 
   const handleMenuOpen = (event, sessionId) => {
@@ -91,20 +89,20 @@ function Sidebar({ open, onToggle, isMobile }) {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: '#202123',
+        backgroundColor: 'background.paper',
+        borderRight: '1px solid',
+        borderColor: 'divider',
       }}
     >
       {/* Header */}
       <Box sx={{ p: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          {isMobile && (
-            <IconButton 
-              onClick={onToggle}
-              sx={{ mr: 1, color: 'text.primary' }}
-            >
-              <CloseIcon />
-            </IconButton>
-          )}
+          <IconButton 
+            onClick={onToggle}
+            sx={{ mr: 1, color: 'text.primary' }}
+          >
+            <CloseIcon />
+          </IconButton>
           <Typography variant="h6" sx={{ color: 'text.primary', flexGrow: 1 }}>
             Aven Support
           </Typography>
@@ -117,10 +115,10 @@ function Sidebar({ open, onToggle, isMobile }) {
           onClick={handleNewChat}
           sx={{
             color: 'text.primary',
-            borderColor: 'rgba(255, 255, 255, 0.2)',
+            borderColor: 'divider',
             '&:hover': {
-              borderColor: 'rgba(255, 255, 255, 0.3)',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              borderColor: 'primary.main',
+              backgroundColor: 'action.hover',
             },
           }}
         >
@@ -128,7 +126,7 @@ function Sidebar({ open, onToggle, isMobile }) {
         </Button>
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+      <Divider sx={{ borderColor: 'divider' }} />
 
       {/* Chat History */}
       <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
@@ -152,13 +150,13 @@ function Sidebar({ open, onToggle, isMobile }) {
                     my: 0.5,
                     borderRadius: 1,
                     '&.Mui-selected': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      backgroundColor: 'action.selected',
                       '&:hover': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                        backgroundColor: 'action.hover',
                       },
                     },
                     '&:hover': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      backgroundColor: 'action.hover',
                     },
                   }}
                 >
@@ -194,7 +192,7 @@ function Sidebar({ open, onToggle, isMobile }) {
       </Box>
 
       {/* Footer */}
-      <Box sx={{ p: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+      <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
         <Typography variant="caption" color="text.secondary" align="center" display="block">
           AI Support Agent for Aven
         </Typography>
@@ -210,8 +208,9 @@ function Sidebar({ open, onToggle, isMobile }) {
         onClose={handleMenuClose}
         PaperProps={{
           sx: {
-            backgroundColor: '#2d2d30',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            backgroundColor: 'background.paper',
+            border: '1px solid',
+            borderColor: 'divider',
           },
         }}
       >
@@ -227,39 +226,19 @@ function Sidebar({ open, onToggle, isMobile }) {
     </Box>
   );
 
-  if (isMobile) {
-    return (
-      <Drawer
-        variant="temporary"
-        open={open}
-        onClose={onToggle}
-        ModalProps={{
-          keepMounted: true, // Better mobile performance
-        }}
-        sx={{
-          '& .MuiDrawer-paper': {
-            width: DRAWER_WIDTH,
-            boxSizing: 'border-box',
-          },
-        }}
-      >
-        {drawerContent}
-      </Drawer>
-    );
-  }
-
+  // Use temporary drawer for both mobile and desktop to keep menu toggle visible
   return (
     <Drawer
-      variant="persistent"
-      anchor="left"
+      variant="temporary"
       open={open}
+      onClose={onToggle}
+      ModalProps={{
+        keepMounted: true, // Better performance
+      }}
       sx={{
-        width: open ? DRAWER_WIDTH : 0,
-        flexShrink: 0,
         '& .MuiDrawer-paper': {
           width: DRAWER_WIDTH,
           boxSizing: 'border-box',
-          border: 'none',
         },
       }}
     >

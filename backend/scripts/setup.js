@@ -3,8 +3,16 @@
 const path = require('path');
 const fs = require('fs');
 
-// Load environment variables
-require('dotenv').config();
+// Load configuration from config.js instead of environment variables
+const config = require('../config.js');
+
+// Debug: Print configuration
+console.log('DEBUG: Configuration loaded:', {
+  OPENAI_API_KEY: config.OPENAI_API_KEY ? '***set***' : 'missing',
+  PINECONE_API_KEY: config.PINECONE_API_KEY ? '***set***' : 'missing',
+  PINECONE_ENVIRONMENT: config.PINECONE_ENVIRONMENT,
+  PINECONE_INDEX_NAME: config.PINECONE_INDEX_NAME
+});
 
 const knowledgeService = require('../src/services/knowledgeService');
 const pineconeService = require('../src/services/pineconeService');
@@ -14,7 +22,7 @@ console.log('🚀 Aven AI Support Agent Setup');
 console.log('================================\n');
 
 async function checkEnvironment() {
-  console.log('🔍 Checking environment variables...');
+  console.log('🔍 Checking configuration...');
   
   const requiredVars = [
     'OPENAI_API_KEY',
@@ -23,16 +31,16 @@ async function checkEnvironment() {
     'PINECONE_INDEX_NAME'
   ];
   
-  const missing = requiredVars.filter(varName => !process.env[varName]);
+  const missing = requiredVars.filter(varName => !config[varName]);
   
   if (missing.length > 0) {
-    console.log('❌ Missing required environment variables:');
+    console.log('❌ Missing required configuration values:');
     missing.forEach(varName => console.log(`   - ${varName}`));
-    console.log('\n💡 Please create a .env file with these variables or update your config.template.js file');
+    console.log('\n💡 Please update your config.js file with these values');
     return false;
   }
   
-  console.log('✅ All required environment variables are set\n');
+  console.log('✅ All required configuration values are set\n');
   return true;
 }
 
@@ -66,8 +74,20 @@ async function createPineconeIndex() {
     console.log('✅ Pinecone index ready\n');
     return true;
   } catch (error) {
-    console.log(`❌ Failed to create index: ${error.message}\n`);
-    return false;
+    console.log(`⚠️ Index creation failed: ${error.message}`);
+    
+    // Check if we can still connect to the index (it might already exist)
+    try {
+      await pineconeService.initialize();
+      const stats = await pineconeService.getIndexStats();
+      console.log('✅ Pinecone index already exists and is accessible');
+      console.log(`   📈 Total vectors: ${stats.totalVectorCount}`);
+      console.log(`   📏 Dimension: ${stats.dimension}\n`);
+      return true;
+    } catch (indexError) {
+      console.log(`❌ Could not access existing index: ${indexError.message}\n`);
+      return false;
+    }
   }
 }
 

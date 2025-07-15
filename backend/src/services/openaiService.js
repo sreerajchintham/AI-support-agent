@@ -1,5 +1,5 @@
 const OpenAI = require('openai');
-const config = require('../../config.template');
+const config = require('../../config');
 
 class OpenAIService {
   constructor() {
@@ -31,13 +31,14 @@ class OpenAIService {
     }
   }
 
-  async createEmbedding(text, model = 'text-embedding-ada-002') {
+  async createEmbedding(text, model = 'text-embedding-3-large') {
     await this.ensureInitialized();
     
     try {
       const response = await this.client.embeddings.create({
         model: model,
-        input: text
+        input: text,
+        dimensions: 1024 // Match Pinecone index dimensions
       });
       
       return response.data[0].embedding;
@@ -47,7 +48,7 @@ class OpenAIService {
     }
   }
 
-  async createEmbeddings(texts, model = 'text-embedding-ada-002') {
+  async createEmbeddings(texts, model = 'text-embedding-3-large') {
     await this.ensureInitialized();
     
     try {
@@ -61,7 +62,8 @@ class OpenAIService {
         
         const response = await this.client.embeddings.create({
           model: model,
-          input: batch
+          input: batch,
+          dimensions: 1024 // Match Pinecone index dimensions
         });
         
         const embeddings = response.data.map(item => item.embedding);
@@ -85,15 +87,18 @@ class OpenAIService {
     await this.ensureInitialized();
     
     try {
+      // Extract options that need to be transformed
+      const { maxTokens, topP, frequencyPenalty, presencePenalty, ...otherOptions } = options;
+      
       const response = await this.client.chat.completions.create({
         model: options.model || 'gpt-4',
         messages: messages,
         temperature: options.temperature || 0.7,
-        max_tokens: options.maxTokens || 1000,
-        top_p: options.topP || 1,
-        frequency_penalty: options.frequencyPenalty || 0,
-        presence_penalty: options.presencePenalty || 0,
-        ...options
+        max_tokens: maxTokens || 1000,
+        top_p: topP || 1,
+        frequency_penalty: frequencyPenalty || 0,
+        presence_penalty: presencePenalty || 0,
+        ...otherOptions
       });
       
       return response.choices[0].message;

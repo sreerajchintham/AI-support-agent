@@ -147,14 +147,18 @@ export function ChatProvider({ children }) {
       timestamp: new Date(),
     };
 
-    // Add user message
+    // Add user message and immediately show loading
     dispatch({ type: ACTIONS.ADD_MESSAGE, payload: userMessage });
     dispatch({ type: ACTIONS.SET_LOADING, payload: true });
     dispatch({ type: ACTIONS.SET_ERROR, payload: null });
 
     try {
-      // Call API
-      const response = await api.sendMessage(content.trim(), session.id);
+      // Add a minimum delay to show typing indicator (better UX)
+      const apiCallPromise = api.sendMessage(content.trim(), session.id);
+      const minDelayPromise = new Promise(resolve => setTimeout(resolve, 1000)); // 1 second minimum
+      
+      // Wait for both API call and minimum delay
+      const [response] = await Promise.all([apiCallPromise, minDelayPromise]);
 
       // Create assistant message
       const assistantMessage = {

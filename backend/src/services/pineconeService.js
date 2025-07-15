@@ -1,5 +1,5 @@
 const { Pinecone } = require('@pinecone-database/pinecone');
-const config = require('../../config.template');
+const config = require('../../config');
 
 class PineconeService {
   constructor() {
@@ -15,8 +15,7 @@ class PineconeService {
       console.log('🔗 Initializing Pinecone...');
       
       this.pinecone = new Pinecone({
-        apiKey: config.PINECONE_API_KEY,
-        environment: config.PINECONE_ENVIRONMENT
+        apiKey: config.PINECONE_API_KEY
       });
 
       this.index = this.pinecone.index(config.PINECONE_INDEX_NAME);
@@ -126,6 +125,21 @@ class PineconeService {
 
   async createIndex(dimension = 1536) {
     try {
+      console.log(`🏗️ Checking if Pinecone index exists: ${config.PINECONE_INDEX_NAME}`);
+      
+      // Check if index already exists
+      try {
+        const indexList = await this.pinecone.listIndexes();
+        const existingIndex = indexList.indexes?.find(idx => idx.name === config.PINECONE_INDEX_NAME);
+        
+        if (existingIndex) {
+          console.log('📋 Index already exists, skipping creation...');
+          return;
+        }
+      } catch (error) {
+        console.log('⚠️ Could not check existing indexes, attempting to create...');
+      }
+      
       console.log(`🏗️ Creating Pinecone index: ${config.PINECONE_INDEX_NAME}`);
       
       await this.pinecone.createIndex({

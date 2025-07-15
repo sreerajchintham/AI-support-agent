@@ -6,8 +6,6 @@ import {
   IconButton,
   Fade,
   Alert,
-  Chip,
-  useTheme,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -16,10 +14,9 @@ import { useChat } from '../context/ChatContext';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
 import WelcomeScreen from './WelcomeScreen';
-import TypingIndicator from './TypingIndicator';
+import SimpleLoadingIndicator from './SimpleLoadingIndicator';
 
 function ChatInterface({ onToggleSidebar }) {
-  const theme = useTheme();
   const { 
     messages, 
     isLoading, 
@@ -48,31 +45,42 @@ function ChatInterface({ onToggleSidebar }) {
     loadSuggestions();
   }, [loadSuggestions]);
 
-  // Handle scroll events to show/hide scroll button
+  // Handle scroll button visibility
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-      setShowScrollButton(!isNearBottom && messages.length > 0);
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
+      setShowScrollButton(!isNearBottom);
     };
 
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [messages.length]);
+  }, []);
 
+  // Handle suggestion clicks
   const handleSuggestionClick = (suggestion) => {
     sendMessage(suggestion);
   };
 
-  const showWelcome = !currentSession || messages.length === 0;
+  // Handle message submission
+  const handleSubmit = async (message) => {
+    if (message.trim()) {
+      await sendMessage(message);
+    }
+  };
+
+
+
+  // Show welcome screen when no messages
+  const showWelcome = messages.length === 0 && !isLoading;
 
   return (
     <Box
       sx={{
-        height: '100vh',
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: 'background.default',
@@ -81,22 +89,24 @@ function ChatInterface({ onToggleSidebar }) {
       {/* Header */}
       <Box
         sx={{
+          borderBottom: 1,
+          borderColor: 'divider',
+          px: 2,
+          py: 1.5,
           display: 'flex',
           alignItems: 'center',
-          px: 2,
-          py: 1,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
+          gap: 1,
           backgroundColor: 'background.paper',
         }}
       >
         <IconButton
+          size="small"
           onClick={onToggleSidebar}
-          sx={{ mr: 1, color: 'text.primary' }}
+          sx={{ mr: 1 }}
         >
           <MenuIcon />
         </IconButton>
-        <Typography variant="h6" sx={{ color: 'text.primary', flexGrow: 1 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>
           {currentSession?.title || 'Aven AI Support'}
         </Typography>
       </Box>
@@ -139,90 +149,77 @@ function ChatInterface({ onToggleSidebar }) {
                 />
               ))}
               
-              {/* Typing Indicator */}
-              {isLoading && <TypingIndicator />}
+              {/* Simple Loading Indicator */}
+              {isLoading && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
+                  <SimpleLoadingIndicator message="AI is thinking" />
+                </Box>
+              )}
             </Box>
 
             {/* Scroll anchor */}
             <div ref={messagesEndRef} />
           </Container>
         )}
-
-        {/* Scroll to bottom button */}
-        {showScrollButton && (
-          <Fade in={showScrollButton}>
-            <Box
-              sx={{
-                position: 'absolute',
-                bottom: 20,
-                right: 20,
-                zIndex: 1,
-              }}
-            >
-              <IconButton
-                onClick={scrollToBottom}
-                sx={{
-                  backgroundColor: 'background.paper',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  '&:hover': {
-                    backgroundColor: 'action.hover',
-                  },
-                }}
-              >
-                ⬇️
-              </IconButton>
+        
+        {/* Global Loading Indicator - Always visible when loading */}
+        {isLoading && (
+          <Container maxWidth="md" sx={{ py: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
+              <SimpleLoadingIndicator message="AI is thinking" />
             </Box>
-          </Fade>
+          </Container>
         )}
       </Box>
 
       {/* Input Area */}
       <Box
         sx={{
-          borderTop: '1px solid',
+          borderTop: 1,
           borderColor: 'divider',
-          backgroundColor: 'background.default',
+          backgroundColor: 'background.paper',
+          p: 2,
         }}
       >
-        <Container maxWidth="md" sx={{ py: 2 }}>
-          <ChatInput disabled={isLoading} />
-          
-          {/* Quick suggestions for empty chat */}
-          {showWelcome && suggestions.length > 0 && (
-            <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
-              {suggestions.slice(0, 3).map((suggestion, index) => (
-                <Chip
-                  key={index}
-                  label={suggestion}
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  variant="outlined"
-                  size="small"
-                  sx={{
-                    color: 'text.secondary',
-                    borderColor: 'divider',
-                    '&:hover': {
-                      backgroundColor: 'action.hover',
-                      borderColor: 'primary.main',
-                    },
-                  }}
-                />
-              ))}
-            </Box>
-          )}
-
-          {/* Footer disclaimer */}
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            align="center"
-            display="block"
-            sx={{ mt: 2 }}
-          >
-            AI can make mistakes. For account-specific questions, contact Aven support at (888) 966-4655.
-          </Typography>
-        </Container>
+        <ChatInput
+          onSubmit={handleSubmit}
+          disabled={isLoading}
+          placeholder={
+            isLoading 
+              ? "AI is processing your request..." 
+              : "Ask me anything about Aven..."
+          }
+        />
       </Box>
+
+      {/* Scroll to Bottom Button */}
+      <Fade in={showScrollButton}>
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 90,
+            right: 20,
+            zIndex: 1,
+          }}
+        >
+          <IconButton
+            size="medium"
+            onClick={scrollToBottom}
+            sx={{
+              backgroundColor: 'primary.main',
+              color: 'white',
+              '&:hover': {
+                backgroundColor: 'primary.dark',
+              },
+              boxShadow: 2,
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M12 16l-6-6h12l-6 6z"/>
+            </svg>
+          </IconButton>
+        </Box>
+      </Fade>
     </Box>
   );
 }

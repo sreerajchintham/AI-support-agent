@@ -11,26 +11,31 @@ import Sidebar from './components/Sidebar';
 import { ChatProvider } from './context/ChatContext';
 import './App.css';
 
-// ChatGPT-inspired dark theme
+// Aven-inspired light theme with white and black colors
 const theme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: 'light',
     primary: {
-      main: '#10a37f',
-      dark: '#0d8c6c',
+      main: '#000000',
+      dark: '#1a1a1a',
+      light: '#333333',
     },
     secondary: {
-      main: '#f7f7f8',
+      main: '#666666',
     },
     background: {
-      default: '#343541',
-      paper: '#444654',
+      default: '#ffffff',
+      paper: '#f8f9fa',
     },
     text: {
-      primary: '#ececf1',
-      secondary: '#c5c5d2',
+      primary: '#000000',
+      secondary: '#666666',
     },
-    divider: '#565869',
+    divider: '#e0e0e0',
+    action: {
+      hover: '#f5f5f5',
+      selected: '#f0f0f0',
+    },
   },
   typography: {
     fontFamily: '"Söhne", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", sans-serif',
@@ -56,16 +61,16 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            backgroundColor: '#40414f',
+            backgroundColor: '#ffffff',
             borderRadius: 12,
             '& fieldset': {
-              borderColor: '#565869',
+              borderColor: '#e0e0e0',
             },
             '&:hover fieldset': {
-              borderColor: '#565869',
+              borderColor: '#bdbdbd',
             },
             '&.Mui-focused fieldset': {
-              borderColor: '#10a37f',
+              borderColor: '#000000',
             },
           },
         },
@@ -112,27 +117,14 @@ function App() {
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.leavingScreen,
               }),
-              marginLeft: isMobile ? 0 : (sidebarOpen ? 0 : '-260px'),
+              marginLeft: 0, // Keep main content in place
+              width: '100%', // Ensure full width
             }}
           >
             <ChatInterface onToggleSidebar={toggleSidebar} />
           </Box>
 
-          {/* Mobile overlay */}
-          {isMobile && sidebarOpen && (
-            <Box
-              sx={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                zIndex: theme.zIndex.drawer - 1,
-              }}
-              onClick={() => setSidebarOpen(false)}
-            />
-          )}
+          {/* Overlay is handled by the temporary drawer */}
         </Box>
       </ChatProvider>
     </ThemeProvider>

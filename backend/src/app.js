@@ -5,7 +5,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const config = require('../config.template');
+const config = require('../config');
 
 const app = express();
 

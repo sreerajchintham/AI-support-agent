@@ -10,6 +10,8 @@ import {
   Divider,
   Tooltip,
   useTheme,
+  Fade,
+  keyframes,
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -21,7 +23,19 @@ import {
 } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+// Animation for message appearance
+const slideInUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
 
 function MessageBubble({ message }) {
   const theme = useTheme();
@@ -56,12 +70,14 @@ function MessageBubble({ message }) {
         alignItems: 'flex-start',
         gap: 2,
         mb: 2,
+        animation: `${slideInUp} 0.4s ease-out`,
       }}
     >
       {/* Avatar */}
       <Avatar
         sx={{
-          bgcolor: isUser ? 'primary.main' : '#10a37f',
+          bgcolor: isUser ? 'primary.main' : 'primary.main',
+          color: isUser ? 'primary.contrastText' : 'primary.contrastText',
           width: 32,
           height: 32,
           fontSize: '14px',
@@ -127,7 +143,7 @@ function MessageBubble({ message }) {
                     const match = /language-(\w+)/.exec(className || '');
                     return !inline && match ? (
                       <SyntaxHighlighter
-                        style={oneDark}
+                        style={oneLight}
                         language={match[1]}
                         PreTag="div"
                         customStyle={{
@@ -143,7 +159,7 @@ function MessageBubble({ message }) {
                       <Typography
                         component="code"
                         sx={{
-                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          backgroundColor: 'rgba(0, 0, 0, 0.05)',
                           padding: '2px 4px',
                           borderRadius: '4px',
                           fontFamily: 'monospace',
