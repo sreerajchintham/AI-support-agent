@@ -21,10 +21,12 @@ class VapiService {
         this.defaultAssistantId = config.VAPI_ASSISTANT_ID;
         console.log(`✅ Using existing assistant: ${this.defaultAssistantId}`);
       } else {
+        console.log('🔧 Creating new assistant...');
         this.defaultAssistantId = await this.createDefaultAssistant();
         console.log(`✅ Created new assistant: ${this.defaultAssistantId}`);
       }
       
+      console.log('🔧 Vapi service initialization complete, returning...');
       return true;
     } catch (error) {
       console.error('❌ Failed to initialize Vapi service:', error);
@@ -37,6 +39,7 @@ class VapiService {
    */
   async createDefaultAssistant() {
     try {
+      console.log('🔧 Building assistant configuration...');
       const assistantConfig = {
         name: 'Aven HELOC Assistant',
         firstMessage: "Hi! I'm your Aven AI assistant. I can help you with questions about Home Equity Lines of Credit, our credit card products, and how Aven can help you access your home's equity. How can I assist you today?",
@@ -108,7 +111,9 @@ Remember: You're speaking, not typing, so keep it natural and concise.`
         ];
       }
 
+      console.log('🔧 Calling Vapi API to create assistant...');
       const assistant = await this.client.assistants.create(assistantConfig);
+      console.log('🔧 Assistant created successfully, returning ID...');
       return assistant.id;
     } catch (error) {
       console.error('Failed to create assistant:', error);

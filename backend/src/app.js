@@ -60,11 +60,24 @@ app.use((err, req, res, next) => {
 // Initialize Vapi service when server starts
 async function initializeServices() {
   try {
+    console.log('🔧 Starting service initialization...');
     if (config.VAPI_API_KEY) {
-      await vapiService.initialize();
+      console.log('🔧 About to initialize Vapi service...');
+      
+      // Add timeout to prevent hanging
+      const initWithTimeout = Promise.race([
+        vapiService.initialize(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Vapi initialization timeout')), 30000)
+        )
+      ]);
+      
+      await initWithTimeout;
+      console.log('✅ Vapi service initialization completed');
     } else {
       console.log('⚠️ Vapi not configured - voice features will be unavailable');
     }
+    console.log('✅ All services initialized successfully');
   } catch (error) {
     console.error('⚠️ Failed to initialize Vapi service:', error.message);
     console.log('💡 Voice features will be unavailable until Vapi is properly configured');
@@ -72,9 +85,12 @@ async function initializeServices() {
 }
 
 const PORT = config.PORT;
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  await initializeServices();
+  // Initialize services asynchronously without blocking server startup
+  initializeServices().catch(error => {
+    console.error('Service initialization failed:', error);
+  });
 });
 
 module.exports = app; 
