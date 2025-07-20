@@ -1,18 +1,21 @@
 const knowledgeService = require('./knowledgeService');
 const openaiService = require('./openaiService');
 const pineconeService = require('./pineconeService');
+const guardrailsService = require('./guardrailsService');
 const { v4: uuidv4 } = require('uuid');
 
 class ChatService {
   constructor() {
     this.conversations = new Map(); // In-memory storage for demo (use Redis/DB in production)
     this.initialized = false;
+    this.agentName = 'Sarah'; // Agent name
   }
 
   async initialize() {
     if (this.initialized) return;
     
     await knowledgeService.initialize();
+    await guardrailsService.initialize();
     this.initialized = true;
     
     console.log('✅ Chat service initialized');
@@ -22,6 +25,11 @@ class ChatService {
     if (!this.initialized) {
       await this.initialize();
     }
+  }
+
+  // Use comprehensive guardrails service
+  async performSafetyChecks(message, context = {}) {
+    return await guardrailsService.performSafetyChecks(message, context);
   }
 
   // Get or create a conversation session
@@ -80,14 +88,21 @@ class ChatService {
     await this.ensureInitialized();
     
     try {
-      // Safety check
-      const safetyCheck = await openaiService.checkMessageSafety(message);
-      if (!safetyCheck.safe) {
+      // Enhanced safety checks with comprehensive guardrails
+      const safetyChecks = await this.performSafetyChecks(message, { sessionId });
+      if (!safetyChecks.overallSafe) {
+        // Log safety violations for monitoring
+        guardrailsService.logSafetyViolation(safetyChecks.issues, message, sessionId || 'unknown');
+        
+        // Generate appropriate response
+        const safetyResponse = guardrailsService.generateSafetyResponse(safetyChecks.issues, this.agentName);
+        
         return {
-          message: `I can't help with that. ${safetyCheck.reason}. For account-specific questions, please contact Aven support at (888) 966-4655 or support@aven.com.`,
+          message: safetyResponse,
           sessionId: sessionId || uuidv4(),
           sources: [],
-          safety: safetyCheck
+          safety: safetyChecks,
+          agentName: this.agentName
         };
       }
 
@@ -102,20 +117,21 @@ class ChatService {
       const conversationHistory = this.getFormattedHistory(sessionId);
 
       // Get AI response with RAG
-      const ragResponse = await knowledgeService.getAIResponse(message, conversationHistory);
+      const ragResponse = await knowledgeService.getAIResponse(message, conversationHistory, this.agentName);
 
       // Add assistant response to history
       this.addToConversation(sessionId, 'assistant', ragResponse.message, {
         sources: ragResponse.sources
       });
 
-      console.log(`💬 Processed message for session ${sessionId}`);
+      console.log(`💬 ${this.agentName} processed message for session ${sessionId}`);
 
       return {
         message: ragResponse.message,
         sessionId,
         sources: ragResponse.sources,
-        safety: safetyCheck
+        safety: safetyChecks,
+        agentName: this.agentName
       };
 
     } catch (error) {
@@ -123,10 +139,11 @@ class ChatService {
       
       // Fallback response
       return {
-        message: "I'm sorry, I'm experiencing technical difficulties right now. Please try again in a moment, or contact Aven support directly at (888) 966-4655 or support@aven.com.",
+        message: `Hi, I'm ${this.agentName}! I'm sorry, I'm experiencing technical difficulties right now. Please try again in a moment, or contact Aven support directly at (888) 966-4655 or support@aven.com.`,
         sessionId: sessionId || uuidv4(),
         sources: [],
-        error: error.message
+        error: error.message,
+        agentName: this.agentName
       };
     }
   }

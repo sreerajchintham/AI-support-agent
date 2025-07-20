@@ -13,7 +13,7 @@ import {
 } from '@mui/icons-material';
 import { useChat } from '../context/ChatContext';
 
-function ChatInput({ disabled, onSubmit, placeholder = "Ask me anything about Aven..." }) {
+function ChatInput({ disabled, onSubmit, placeholder = "Ask Sarah anything about Aven..." }) {
   const theme = useTheme();
   const { sendMessage, isLoading } = useChat();
   const [message, setMessage] = useState('');

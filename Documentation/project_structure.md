@@ -27,12 +27,14 @@ AI-support-agent/
 │       ├── app.js                  # Main Express application entry point
 │       ├── routes/
 │       │   ├── chat.js             # Chat API endpoints
-│       │   └── admin.js            # Admin API endpoints
+│       │   ├── admin.js            # Admin API endpoints
+│       │   └── vapi.js             # Vapi voice chat API endpoints
 │       ├── services/
 │       │   ├── openaiService.js    # OpenAI API integration service
 │       │   ├── pineconeService.js  # Pinecone vector database service
 │       │   ├── knowledgeService.js # Knowledge base management service
-│       │   └── chatService.js      # Chat logic and RAG orchestration
+│       │   ├── chatService.js      # Chat logic and RAG orchestration
+│       │   └── vapiService.js      # Vapi voice chat integration service
 │       ├── middleware/             # Express middleware (empty)
 │       └── utils/                  # Utility functions (empty)
 │
@@ -91,13 +93,15 @@ AI-support-agent/
 | `backend/init-knowledge-base.js` | Database Initialization | JavaScript | **One-time setup script** for populating the Pinecone vector database with Aven's knowledge base. Orchestrates the complete data pipeline: reads JSON files from data directory, processes documents through knowledge service, generates embeddings using OpenAI, uploads vectors to Pinecone, and provides detailed console feedback on loading progress. Critical for initial system deployment and knowledge base updates. |
 | `backend/env-setup.md` | Setup Instructions | Markdown | **Developer onboarding documentation** with 59 lines of step-by-step environment configuration. Covers API key acquisition from OpenAI and Pinecone, environment variable setup, database index creation, and troubleshooting common configuration issues. Includes security best practices for credential management and development vs production environment differences. |
 | `backend/scripts/setup.js` | Automation Script | JavaScript | **200-line automated setup system** that streamlines project initialization. Validates Node.js version compatibility, creates configuration files from templates, installs all project dependencies (backend, frontend, root), initializes Pinecone database indexes, loads knowledge base data, and performs end-to-end system validation. Reduces setup time from hours to minutes for new developers. |
-| `backend/src/app.js` | Express Server Core | JavaScript | **Main Express.js application** (67 lines) serving as the backbone of the AI support system. Implements comprehensive security middleware (Helmet for HTTP headers), rate limiting protection, CORS configuration for frontend access, request logging with Morgan, JSON body parsing with 10MB limits, health check endpoints, API route mounting, global error handling, and 404 management. Runs on configurable port with startup logging. |
+| `backend/src/app.js` | Express Server Core | JavaScript | **Main Express.js application** (80 lines) serving as the backbone of the AI support system. Implements comprehensive security middleware (Helmet for HTTP headers), rate limiting protection, CORS configuration for frontend access, request logging with Morgan, JSON body parsing with 10MB limits, health check endpoints, API route mounting (chat, admin, Vapi), global error handling, and **optimized non-blocking startup process**. Features enhanced service initialization with 30-second timeout protection and detailed debug logging. Server responds immediately while services initialize asynchronously in background. |
 | `backend/src/routes/chat.js` | Chat API Endpoints | JavaScript | **Primary chat functionality router** (107 lines) handling all user interactions. Provides POST endpoint for message processing with input validation and session management, GET endpoint for suggested questions, session retrieval for conversation history, and session deletion for privacy. Integrates with chat service for RAG pipeline orchestration and includes comprehensive error handling and response formatting. |
 | `backend/src/routes/admin.js` | Admin API Routes | JavaScript | **Administrative interface** (138 lines) for knowledge base management and system control. Provides endpoints for loading new knowledge base content, retrieving system statistics, performing direct search queries for testing, clearing database content, and file processing utilities. Includes authentication middleware and validation for administrative operations. Essential for content management and system maintenance. |
+| `backend/src/routes/vapi.js` | Vapi API Routes | JavaScript | **Voice chat integration endpoints** handling Vapi webhook communications and voice configuration. Provides webhook endpoint for processing Vapi function calls, public configuration endpoint for frontend voice features, and voice assistant management. Integrates with Vapi service for real-time voice conversations and knowledge base function calling. Essential for voice chat functionality and AI-powered voice support. |
 | `backend/src/services/openaiService.js` | OpenAI Integration | JavaScript | **AI service layer** (186 lines) managing all OpenAI API interactions. Handles GPT-4 chat completions with temperature control and context management, text-embedding-3-large vector generation with 1024 dimensions for Pinecone compatibility, batch processing for multiple embeddings, retry logic for API failures, rate limiting compliance, and response formatting. Core component of the RAG system's generation capabilities. |
 | `backend/src/services/pineconeService.js` | Vector Database Service | JavaScript | **Vector database operations** (169 lines) managing all Pinecone interactions. Provides vector insertion and updates with metadata attachment, semantic similarity search with configurable filters, batch processing for bulk operations, index statistics and health monitoring, vector cleanup utilities, and namespace management. Critical for the retrieval component of the RAG architecture. |
 | `backend/src/services/knowledgeService.js` | Knowledge Processing | JavaScript | **Comprehensive knowledge management system** (397 lines) handling the complete document processing pipeline. Implements intelligent text chunking with overlap for context preservation, document processing with metadata extraction, bulk loading from JSON files, semantic search coordination, context generation for prompts, and document statistics tracking. Central orchestrator of the RAG system's knowledge base operations. |
 | `backend/src/services/chatService.js` | RAG Orchestration | JavaScript | **Core chat intelligence** (229 lines) coordinating the complete RAG pipeline. Manages conversation sessions with in-memory storage, orchestrates context retrieval from Pinecone, constructs prompts with system messages and relevant context, calls OpenAI for response generation, handles conversation history, provides fallback responses when services are unavailable, and manages session cleanup and statistics. The brain of the AI support system. |
+| `backend/src/services/vapiService.js` | Voice Chat Service | JavaScript | **Voice chat integration service** (261 lines) managing Vapi AI voice conversation capabilities. Handles assistant creation and configuration with voice-optimized system prompts, webhook function processing for knowledge base integration, voice-specific response formatting (shortened for speech), real-time transcription support, call management, and voice assistant lifecycle. Features **enhanced initialization with comprehensive debug logging** and non-blocking startup. Critical for AI-powered voice support functionality. |
 | **🎨 Frontend Application Files** |
 | `frontend/package.json` | React Configuration | JSON | **Frontend dependency management** (49 lines) for the React-based chat interface. Includes React 18 with hooks, Material-UI component library for professional styling, Axios for API communication, React Router for navigation, UUID for session management, and testing utilities (Jest, React Testing Library). Defines build scripts for development server, production builds, and optimization. Supports modern browsers with ES6+ features. |
 | `frontend/.gitignore` | Version Control Rules | Text | **Git exclusion patterns** (24 lines) specifically configured for React applications. Excludes build artifacts (build/, dist/), dependency directories (node_modules/), environment files (.env variants), IDE configurations, logs, and temporary files. Prevents sensitive configuration and large binary files from being committed to version control while maintaining clean repository structure. |
@@ -132,10 +136,13 @@ AI-support-agent/
 
 ### `/backend`
 Contains the Node.js/Express server that handles:
-- API endpoints for chat functionality
+- API endpoints for chat functionality and voice integration
 - RAG (Retrieval-Augmented Generation) system
 - Integration with OpenAI GPT-4 and Pinecone vector database
+- Vapi voice chat service with assistant management
 - Knowledge base management and embedding processing
+- **Optimized non-blocking startup with timeout protection**
+- **Enhanced error handling and comprehensive debug logging**
 
 ### `/frontend` 
 Contains the React application providing:

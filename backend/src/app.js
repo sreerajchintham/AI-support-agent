@@ -47,6 +47,8 @@ app.get('/health', (req, res) => {
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/vapi', require('./routes/vapi'));
+app.use('/api/meetings', require('./routes/meetings'));
+app.use('/api/evaluation', require('./routes/evaluation'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

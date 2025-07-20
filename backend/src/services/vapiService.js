@@ -1,6 +1,8 @@
 const { VapiClient } = require('@vapi-ai/server-sdk');
 const config = require('../../config');
 const knowledgeService = require('./knowledgeService');
+const meetingService = require('./meetingService');
+const guardrailsService = require('./guardrailsService');
 
 class VapiService {
   constructor() {
@@ -16,6 +18,9 @@ class VapiService {
   async initialize() {
     try {
       console.log('🎙️ Initializing Vapi service...');
+      
+      // Initialize guardrails service
+      await guardrailsService.initialize();
       
       if (config.VAPI_ASSISTANT_ID) {
         this.defaultAssistantId = config.VAPI_ASSISTANT_ID;
@@ -41,15 +46,17 @@ class VapiService {
     try {
       console.log('🔧 Building assistant configuration...');
       const assistantConfig = {
-        name: 'Aven HELOC Assistant',
-        firstMessage: "Hi! I'm your Aven AI assistant. I can help you with questions about Home Equity Lines of Credit, our credit card products, and how Aven can help you access your home's equity. How can I assist you today?",
+        name: 'Sarah - Aven AI Assistant',
+        firstMessage: "Hi! I am Sarah, I am here to answer all the questions about Aven. How can I help you?",
         model: {
           provider: 'openai',
           model: config.VAPI_MODEL,
           temperature: 0.7,
           messages: [{
             role: 'system',
-            content: `You are Aven's AI voice assistant, helping customers understand Home Equity Lines of Credit (HELOC) and Aven's unique credit card solution.
+            content: `You are Sarah, Aven's AI voice assistant, helping customers understand Home Equity Lines of Credit (HELOC) and Aven's unique credit card solution.
+
+IMPORTANT: You have already introduced yourself in the first message. Do NOT introduce yourself again in subsequent responses - focus on being helpful without mentioning your name.
 
 CORE KNOWLEDGE:
 - Aven offers HELOC-backed credit cards that let homeowners access home equity through everyday spending
@@ -59,21 +66,31 @@ CORE KNOWLEDGE:
 - Tax benefits may apply since it's secured by home equity
 - Credit limits up to $500,000 based on home value and equity
 
+SAFETY GUIDELINES:
+- NEVER provide personal financial advice or investment recommendations
+- NEVER handle personal data like SSN, credit card numbers, or account details
+- NEVER provide legal advice - direct to qualified attorneys
+- NEVER discuss political topics or controversial subjects
+- NEVER respond to toxic, offensive, or inappropriate content
+- For account-specific questions, direct to Aven support at (888) 966-4655
+- For sensitive information, always redirect to human support
+
 COMMUNICATION STYLE:
 - Keep responses under 50 words for voice conversations
 - Be conversational and helpful
 - Ask clarifying questions when needed
 - Direct complex questions to human agents when appropriate
 - Focus on benefits and practical applications
+- If you detect safety violations, politely redirect to appropriate resources
 
-Remember: You're speaking, not typing, so keep it natural and concise.`
+Remember: You're speaking, not typing, so keep it natural and concise while maintaining safety standards.`
           }]
         },
         voice: {
           provider: '11labs',
           voiceId: config.VAPI_VOICE_ID
         },
-        endCallMessage: "Thanks for chatting with Aven! If you have more questions, feel free to start another conversation or visit our website.",
+        endCallMessage: "Thanks for chatting with Sarah! If you have more questions, feel free to start another conversation or visit our website.",
         recordingEnabled: false,
         hipaaEnabled: false,
         silenceTimeoutSeconds: 30,
@@ -106,6 +123,51 @@ Remember: You're speaking, not typing, so keep it natural and concise.`
                 }
               },
               required: ['query']
+            }
+          },
+          {
+            name: 'schedule_meeting',
+            description: 'Schedule a meeting with an Aven representative for consultation, application assistance, or support',
+            parameters: {
+              type: 'object',
+              properties: {
+                name: {
+                  type: 'string',
+                  description: 'Customer name for the meeting'
+                },
+                email: {
+                  type: 'string',
+                  description: 'Customer email address'
+                },
+                phone: {
+                  type: 'string',
+                  description: 'Customer phone number'
+                },
+                meetingType: {
+                  type: 'string',
+                  enum: ['consultation', 'application', 'support'],
+                  description: 'Type of meeting to schedule'
+                },
+                notes: {
+                  type: 'string',
+                  description: 'Additional notes or reason for the meeting'
+                }
+              },
+              required: ['name', 'email', 'phone']
+            }
+          },
+          {
+            name: 'get_available_slots',
+            description: 'Get available meeting slots for scheduling',
+            parameters: {
+              type: 'object',
+              properties: {
+                date: {
+                  type: 'string',
+                  description: 'Specific date to check (YYYY-MM-DD format) or leave empty for next available slots'
+                }
+              },
+              required: []
             }
           }
         ];
@@ -165,6 +227,12 @@ Remember: You're speaking, not typing, so keep it natural and concise.`
       switch (functionCall.name) {
         case 'search_knowledge':
           return await this.searchKnowledge(functionCall.parameters);
+        
+        case 'schedule_meeting':
+          return await this.scheduleMeeting(functionCall.parameters);
+        
+        case 'get_available_slots':
+          return await this.getAvailableSlots(functionCall.parameters);
         
         default:
           console.warn('Unknown function call:', functionCall.name);
@@ -248,6 +316,99 @@ Remember: You're speaking, not typing, so keep it natural and concise.`
     } catch (error) {
       console.error('Failed to create call:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Schedule a meeting function
+   */
+  async scheduleMeeting(parameters) {
+    try {
+      const { name, email, phone, meetingType = 'consultation', notes } = parameters;
+      
+      // Get next available slot
+      const nextSlot = meetingService.getNextAvailableSlot();
+      
+      if (!nextSlot) {
+        return {
+          success: false,
+          message: "I'm sorry, but there are no available meeting slots at the moment. Please try again later or contact us directly at (888) 966-4655.",
+          availableSlots: []
+        };
+      }
+
+      // Schedule the meeting
+      const userInfo = {
+        name,
+        email,
+        phone,
+        notes
+      };
+
+      const result = await meetingService.scheduleMeeting(userInfo, nextSlot.id, meetingType);
+      
+      if (result.success) {
+        return {
+          success: true,
+          message: result.confirmationMessage,
+          meeting: {
+            date: result.meeting.scheduledDate,
+            time: result.meeting.scheduledTime,
+            confirmationCode: result.meeting.confirmationCode
+          }
+        };
+      } else {
+        return {
+          success: false,
+          message: "I'm sorry, but I couldn't schedule the meeting. Please try again or contact us directly at (888) 966-4655.",
+          error: result.error
+        };
+      }
+    } catch (error) {
+      console.error('Meeting scheduling error:', error);
+      return {
+        success: false,
+        message: "I'm sorry, but I encountered an error while scheduling your meeting. Please contact us directly at (888) 966-4655.",
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Get available slots function
+   */
+  async getAvailableSlots(parameters) {
+    try {
+      const { date } = parameters;
+      const slots = meetingService.getAvailableSlots(date);
+      
+      if (slots.length === 0) {
+        return {
+          success: false,
+          message: "I'm sorry, but there are no available slots for that date. Would you like me to check for other available times?",
+          availableSlots: []
+        };
+      }
+
+      // Format slots for voice response
+      const formattedSlots = slots.slice(0, 5).map(slot => ({
+        date: slot.date,
+        time: slot.time,
+        available: slot.available
+      }));
+
+      return {
+        success: true,
+        message: `I found ${slots.length} available slots. The next available times are: ${formattedSlots.map(s => `${s.date} at ${s.time}`).join(', ')}. Would you like me to schedule a meeting for you?`,
+        availableSlots: formattedSlots
+      };
+    } catch (error) {
+      console.error('Get available slots error:', error);
+      return {
+        success: false,
+        message: "I'm sorry, but I couldn't retrieve the available slots. Please try again or contact us directly at (888) 966-4655.",
+        error: error.message
+      };
     }
   }
 

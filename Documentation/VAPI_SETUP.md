@@ -82,11 +82,28 @@ Popular voice options:
    ```
 
 3. **Check the console** for initialization messages:
+   
+   **✅ Expected Successful Startup Logs**:
    ```
-   🎙️ Initializing Vapi service...
-   ✅ Created new assistant: asst_abc123...
    🚀 Server running on port 5001
+   🔧 Starting service initialization...
+   🔧 About to initialize Vapi service...
+   🎙️ Initializing Vapi service...
+   🔧 Creating new assistant...
+   🔧 Building assistant configuration...
+   🔧 Calling Vapi API to create assistant...
+   🔧 Assistant created successfully, returning ID...
+   ✅ Created new assistant: asst_abc123...
+   🔧 Vapi service initialization complete, returning...
+   ✅ Vapi service initialization completed
+   ✅ All services initialized successfully
    ```
+
+4. **Verify server is responsive**:
+   ```bash
+   curl -s http://localhost:5001/health
+   ```
+   Should return: `{"status":"OK","timestamp":"...","service":"AI Support Agent API"}`
 
 ## 🎮 Step 5: Test Voice Features
 
@@ -98,15 +115,49 @@ Popular voice options:
 
 ## 🔍 Troubleshooting
 
+### ⚠️ Backend Hanging Issues (RESOLVED)
+
+**Previous Issue**: Backend would hang after creating Vapi assistant
+```
+🚀 Server running on port 5001
+🎙️ Initializing Vapi service...
+✅ Created new assistant: asst_abc123...
+[Process appears stuck here]
+```
+
+**✅ Recent Fix Applied**: 
+- **Non-blocking initialization**: Server no longer waits for Vapi to complete
+- **30-second timeout**: Prevents infinite hanging
+- **Immediate responsiveness**: Server responds within 1-2 seconds
+
+**If you still experience hanging**:
+1. **Check server responsiveness**:
+   ```bash
+   curl -s http://localhost:5001/health
+   ```
+   If this works, the server is fine and services are initializing in background.
+
+2. **Kill and restart if needed**:
+   ```bash
+   lsof -ti:5001 -ti:3000 | xargs kill -9
+   npm run dev
+   ```
+
+3. **Disable Vapi temporarily**:
+   - Comment out `VAPI_API_KEY` in your configuration
+   - Server will start without voice features
+
 ### "Voice chat not initialized"
 - Check that VAPI_API_KEY and VAPI_PUBLIC_KEY are set correctly
 - Verify your Vapi account has sufficient credits
 - Check browser console for detailed error messages
+- Ensure Vapi service initialization completed successfully
 
 ### "Assistant creation failed"
 - Ensure OpenAI API key is valid and has credits
 - Check that your Vapi account has assistant creation permissions
 - Verify webhook URL is accessible (for local development, use ngrok)
+- Check backend logs for specific error messages
 
 ### No audio or microphone access
 - Allow microphone permissions in your browser
@@ -117,6 +168,19 @@ Popular voice options:
 - Verify webhook endpoint is accessible
 - Check backend logs for function call processing
 - Ensure knowledge base is properly initialized
+
+### Service Initialization Timeout
+If you see timeout errors:
+```
+⚠️ Failed to initialize Vapi service: Vapi initialization timeout
+💡 Voice features will be unavailable until Vapi is properly configured
+```
+
+**Causes & Solutions**:
+- **Network issues**: Check internet connection
+- **API rate limits**: Wait a few minutes and restart
+- **Invalid credentials**: Verify Vapi API keys
+- **Service outage**: Check Vapi status page
 
 ## 🔗 Webhook Setup (Production)
 
@@ -143,6 +207,15 @@ Check browser console for:
 Voice call started
 Vapi message: {type: "transcript", role: "user", transcript: "..."}
 Voice call ended
+```
+
+### Health Check Monitoring
+```bash
+# Continuous health monitoring
+watch -n 5 'curl -s http://localhost:5001/health'
+
+# Check service initialization status
+curl -s http://localhost:5001/api/vapi/config
 ```
 
 ## 🎛️ Advanced Configuration
@@ -181,6 +254,17 @@ case 'your_custom_function':
   return await this.yourCustomFunction(functionCall.parameters);
 ```
 
+### Timeout Configuration
+
+Adjust initialization timeout in `backend/src/app.js`:
+
+```javascript
+// Change 30000 (30 seconds) to your preferred timeout
+new Promise((_, reject) => 
+  setTimeout(() => reject(new Error('Vapi initialization timeout')), 30000)
+)
+```
+
 ## 📈 Usage Analytics
 
 The system logs call analytics including:
@@ -188,6 +272,7 @@ The system logs call analytics including:
 - End reasons
 - Function call frequency
 - Transcript data
+- Initialization success/failure rates
 
 Access logs through your backend console or implement custom analytics endpoints.
 
@@ -198,6 +283,7 @@ Access logs through your backend console or implement custom analytics endpoints
 3. **Implement rate limiting** for webhook endpoints
 4. **Monitor usage** to prevent abuse
 5. **Use HTTPS** for all voice communications
+6. **Validate webhook signatures** to prevent spoofing
 
 ## 💰 Cost Optimization
 
@@ -214,6 +300,44 @@ Access logs through your backend console or implement custom analytics endpoints
 // Track 11Labs character usage
 ```
 
+## 🛠️ Development Tips
+
+### Testing Without Voice
+```bash
+# Start backend without Vapi
+# Comment out VAPI_API_KEY in config
+npm run backend:dev
+
+# Or test API directly
+curl -X POST http://localhost:5001/api/chat/message \
+  -H "Content-Type: application/json" \
+  -d '{"message": "test question"}'
+```
+
+### Debugging Startup Issues
+```bash
+# Monitor startup process
+npm run backend:dev | tee startup.log
+
+# Check for hanging
+timeout 60 npm run backend:dev || echo "Server startup timeout"
+
+# Test responsiveness
+sleep 5 && curl -s http://localhost:5001/health
+```
+
+### Performance Monitoring
+```bash
+# Monitor response times
+time curl -s http://localhost:5001/health
+
+# Check process resource usage
+ps aux | grep node
+
+# Monitor network connections
+netstat -an | grep 5001
+```
+
 ## 🆘 Support
 
 If you need help:
@@ -221,6 +345,8 @@ If you need help:
 2. Join the [Vapi Discord Community](https://discord.gg/vapi)
 3. Review backend logs for error details
 4. Test with simple queries first
+5. Use health check endpoint to verify server status
+6. Check our troubleshooting section above for common issues
 
 ## 🎉 Success!
 
@@ -229,5 +355,8 @@ Once configured, you'll have:
 - ✅ Real-time transcription and audio visualization
 - ✅ Integration with your existing knowledge base
 - ✅ Professional voice experience for users
+- ✅ **Fast, reliable server startup**
+- ✅ **Non-blocking service initialization**
+- ✅ **Comprehensive error handling and recovery**
 
-Your AI Support Agent now supports both text and voice interactions! 🎤 
+Your AI Support Agent now supports both text and voice interactions with optimized performance! 🎤 

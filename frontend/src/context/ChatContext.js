@@ -151,14 +151,14 @@ export function ChatProvider({ children }) {
     dispatch({ type: ACTIONS.ADD_MESSAGE, payload: userMessage });
     dispatch({ type: ACTIONS.SET_LOADING, payload: true });
     dispatch({ type: ACTIONS.SET_ERROR, payload: null });
+    console.log('🚀 Loading state set to true');
 
     try {
-      // Add a minimum delay to show typing indicator (better UX)
+      // Start the API call immediately
       const apiCallPromise = api.sendMessage(content.trim(), session.id);
-      const minDelayPromise = new Promise(resolve => setTimeout(resolve, 1000)); // 1 second minimum
       
-      // Wait for both API call and minimum delay
-      const [response] = await Promise.all([apiCallPromise, minDelayPromise]);
+      // Wait for API response
+      const response = await apiCallPromise;
 
       // Create assistant message
       const assistantMessage = {
@@ -208,6 +208,7 @@ export function ChatProvider({ children }) {
       dispatch({ type: ACTIONS.ADD_MESSAGE, payload: errorMessage });
     } finally {
       dispatch({ type: ACTIONS.SET_LOADING, payload: false });
+      console.log('✅ Loading state set to false');
     }
   }, [state.currentSession, state.messages.length, createSession]);
 

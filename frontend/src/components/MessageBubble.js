@@ -5,8 +5,6 @@ import {
   Typography,
   Avatar,
   IconButton,
-  Collapse,
-  Chip,
   keyframes,
 } from '@mui/material';
 import {
@@ -14,9 +12,6 @@ import {
   SmartToy as BotIcon,
   ContentCopy as CopyIcon,
   Check as CheckIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  AccessTime as TimeIcon,
 } from '@mui/icons-material';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -37,8 +32,6 @@ const slideInUp = keyframes`
 
 function MessageBubble({ message }) {
   const [copied, setCopied] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
 
   const isUser = message.role === 'user';
   const isError = message.isError;
@@ -115,7 +108,7 @@ function MessageBubble({ message }) {
           {/* Message Header */}
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              {isUser ? 'You' : 'Aven AI'}
+              {isUser ? 'You' : 'Sarah'}
             </Typography>
             <Typography variant="caption" sx={{ ml: 'auto', opacity: 0.7 }}>
               {formatTime(message.timestamp)}
@@ -207,77 +200,9 @@ function MessageBubble({ message }) {
                 <CopyIcon fontSize="small" />
                 {copied && <CheckIcon fontSize="small" sx={{ ml: 0.5 }} />}
               </IconButton>
-
-              {/* Sources button */}
-              {message.sources && message.sources.length > 0 && (
-                <IconButton
-                  size="small"
-                  onClick={() => setExpanded(!expanded)}
-                  sx={{ 
-                    color: 'text.secondary',
-                    '&:hover': { color: 'text.primary' },
-                  }}
-                >
-                  <ExpandMoreIcon fontSize="small" />
-                  <Typography variant="caption" sx={{ ml: 0.5 }}>
-                    {message.sources.length}
-                  </Typography>
-                  {expanded ? (
-                    <ExpandLessIcon fontSize="small" />
-                  ) : (
-                    <ExpandMoreIcon fontSize="small" />
-                  )}
-                </IconButton>
-              )}
             </Box>
           )}
         </Paper>
-
-        {/* Sources Section */}
-        {message.sources && message.sources.length > 0 && (
-          <Collapse in={expanded}>
-            <Paper
-              elevation={0}
-              sx={{
-                mt: 1,
-                p: 2,
-                backgroundColor: 'background.default',
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 2,
-              }}
-            >
-              <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-                Sources ({message.sources.length})
-              </Typography>
-              {/* <Divider sx={{ mb: 1 }} /> */} {/* Removed Divider as per new_code */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {message.sources.map((source, index) => (
-                  <Box key={index}>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {source.title}
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                      <Chip
-                        label={source.source}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontSize: '11px' }}
-                      />
-                      <Chip
-                        label={`${(source.relevanceScore * 100).toFixed(0)}% match`}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                        sx={{ fontSize: '11px' }}
-                      />
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
-            </Paper>
-          </Collapse>
-        )}
       </Box>
     </Box>
   );

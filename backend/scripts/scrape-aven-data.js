@@ -1,204 +1,413 @@
-const axios = require('axios');
+const puppeteer = require('puppeteer');
 const fs = require('fs').promises;
 const path = require('path');
+const axios = require('axios');
+const cheerio = require('cheerio');
 
 class AvenDataScraper {
   constructor() {
-    this.baseUrl = 'https://www.aven.com';
-    this.headers = {
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    this.dataDir = path.join(__dirname, '../../data/scraped');
+    this.browser = null;
+  }
+
+  async initialize() {
+    console.log('🚀 Initializing Aven data scraper...');
+    
+    // Create data directory if it doesn't exist
+    await fs.mkdir(this.dataDir, { recursive: true });
+    
+    // Launch browser
+    this.browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    console.log('✅ Scraper initialized');
+  }
+
+  async close() {
+    if (this.browser) {
+      await this.browser.close();
+    }
+  }
+
+  // Scrape Aven's main website
+  async scrapeAvenWebsite() {
+    console.log('🌐 Scraping Aven website...');
+    
+    const page = await this.browser.newPage();
+    const data = {
+      company_info: {},
+      products: [],
+      features: [],
+      faqs: [],
+      contact: {},
+      scraped_at: new Date().toISOString()
+    };
+
+    try {
+      // Main website
+      await page.goto('https://aven.com', { waitUntil: 'networkidle2', timeout: 30000 });
+      
+      // Extract company information
+      data.company_info = await page.evaluate(() => {
+        const info = {};
+        
+        // Get page title
+        info.title = document.title || 'Aven - Home Equity Credit Card';
+        
+        // Get meta description
+        const metaDesc = document.querySelector('meta[name="description"]');
+        info.description = metaDesc ? metaDesc.getAttribute('content') : '';
+        
+        // Get main heading
+        const mainHeading = document.querySelector('h1');
+        info.main_heading = mainHeading ? mainHeading.textContent.trim() : '';
+        
+        return info;
+      });
+
+      // Extract product information
+      data.products = await page.evaluate(() => {
+        const products = [];
+        
+        // Look for product sections
+        const productSections = document.querySelectorAll('[class*="product"], [class*="card"], [class*="feature"]');
+        
+        productSections.forEach(section => {
+          const title = section.querySelector('h2, h3, h4')?.textContent.trim();
+          const description = section.querySelector('p')?.textContent.trim();
+          
+          if (title && description) {
+            products.push({ title, description });
+          }
+        });
+        
+        return products;
+      });
+
+      // Extract features
+      data.features = await page.evaluate(() => {
+        const features = [];
+        
+        // Look for feature lists
+        const featureElements = document.querySelectorAll('li, [class*="feature"], [class*="benefit"]');
+        
+        featureElements.forEach(element => {
+          const text = element.textContent.trim();
+          if (text.length > 20 && text.length < 200) {
+            features.push(text);
+          }
+        });
+        
+        return features.slice(0, 10); // Limit to 10 features
+        });
+
+      // Extract contact information
+      data.contact = await page.evaluate(() => {
+        const contact = {};
+        
+        // Look for phone numbers
+        const phoneRegex = /\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g;
+        const phoneMatches = document.body.textContent.match(phoneRegex);
+        if (phoneMatches) {
+          contact.phone = phoneMatches[0];
+        }
+        
+        // Look for email addresses
+        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+        const emailMatches = document.body.textContent.match(emailRegex);
+        if (emailMatches) {
+          contact.email = emailMatches.find(email => email.includes('aven'));
+        }
+        
+        return contact;
+      });
+
+      console.log('✅ Website scraping completed');
+    } catch (error) {
+      console.error('❌ Website scraping failed:', error.message);
+    } finally {
+      await page.close();
+    }
+
+    return data;
+  }
+
+  // Scrape additional Aven information from various sources
+  async scrapeAdditionalSources() {
+    console.log('🔍 Scraping additional sources...');
+    
+    const additionalData = {
+      heloc_info: [],
+      rates_info: [],
+      application_process: [],
+      customer_reviews: [],
+            scraped_at: new Date().toISOString()
+    };
+
+    try {
+      // Scrape HELOC information from financial websites
+      const helocSources = [
+        'https://www.investopedia.com/terms/h/heloc.asp',
+        'https://www.consumerfinance.gov/ask-cfpb/what-is-a-home-equity-line-of-credit-heloc-en-168/'
+      ];
+
+      for (const source of helocSources) {
+        try {
+          const response = await axios.get(source, { timeout: 10000 });
+          const $ = cheerio.load(response.data);
+          
+          // Extract relevant content
+          const content = $('p, h1, h2, h3, h4, h5, h6').map((i, el) => $(el).text().trim()).get();
+          
+          additionalData.heloc_info.push({
+            source: source,
+            content: content.slice(0, 10).join(' ').substring(0, 1000) // Limit content
+          });
+        } catch (error) {
+          console.log(`⚠️ Failed to scrape ${source}:`, error.message);
+        }
+  }
+
+      // Generate synthetic Aven-specific data
+      additionalData.rates_info = [
+      {
+          title: 'Aven Card Interest Rates',
+          content: 'The Aven Card offers variable interest rates based on the Prime Rate or Federal Funds Target Rate, with a maximum APR of 18%. Rates are typically much lower than traditional credit cards due to the home equity backing.',
+          source: 'synthetic'
+      },
+      {
+          title: 'Rate Calculation',
+          content: 'Your rate is calculated based on your credit profile, home equity, and current market conditions. The rate can adjust monthly based on changes in the Prime Rate.',
+          source: 'synthetic'
+        }
+      ];
+
+      additionalData.application_process = [
+        {
+          title: 'How to Apply for Aven Card',
+          content: 'The application process starts with a soft credit pull that doesn\'t affect your credit score. You\'ll need to provide information about your income, home equity, and debt obligations. The process typically takes 10-15 minutes online.',
+          source: 'synthetic'
+      },
+      {
+          title: 'Eligibility Requirements',
+          content: 'To qualify for the Aven Card, you need to be a homeowner with sufficient equity in your home, have a good credit score, and meet income requirements. The underwriting system evaluates your overall financial profile.',
+          source: 'synthetic'
+        }
+      ];
+
+      console.log('✅ Additional sources scraping completed');
+      } catch (error) {
+      console.error('❌ Additional sources scraping failed:', error.message);
+    }
+
+    return additionalData;
+  }
+
+  // Generate comprehensive FAQ data
+  generateComprehensiveFAQs() {
+    console.log('📋 Generating comprehensive FAQ data...');
+    
+    const faqs = [
+      {
+        category: 'Product Basics',
+        question: 'What is the Aven Card?',
+        answer: 'The Aven Card is a credit card backed by your home equity (HELOC). It allows you to access your home\'s equity through everyday spending, with rates typically much lower than traditional credit cards.'
+      },
+      {
+        category: 'Product Basics',
+        question: 'How does the Aven Card work?',
+        answer: 'The Aven Card works like a regular credit card but is secured by your home equity. You can use it for purchases wherever VISA is accepted, and you only pay interest on what you use. No monthly payments are required.'
+      },
+      {
+        category: 'Product Basics',
+        question: 'What is the maximum credit limit?',
+        answer: 'The maximum credit limit for the Aven Card is $250,000, depending on your home equity and credit profile.'
+      },
+      {
+        category: 'Rates and Fees',
+        question: 'What are the interest rates?',
+        answer: 'The Aven Card has variable rates based on the Prime Rate or Federal Funds Target Rate, with a maximum APR of 18%. Rates are typically much lower than traditional credit cards.'
+      },
+      {
+        category: 'Rates and Fees',
+        question: 'Are there any annual fees?',
+        answer: 'No, there are no annual fees, application fees, or account closing fees with the Aven Card.'
+      },
+      {
+        category: 'Rates and Fees',
+        question: 'What fees are associated with the card?',
+        answer: 'The Aven Card has no application fees, no annual fees, and no account closing fees. You only pay interest on the amount you use.'
+      },
+      {
+        category: 'Application Process',
+        question: 'How do I apply for an Aven Card?',
+        answer: 'You can apply online at aven.com. The process starts with a soft credit pull that doesn\'t affect your credit score and typically takes 10-15 minutes to complete.'
+      },
+      {
+        category: 'Application Process',
+        question: 'What are the eligibility requirements?',
+        answer: 'You need to be a homeowner with sufficient equity, have a good credit score, and meet income requirements. The underwriting system evaluates your overall financial profile.'
+      },
+      {
+        category: 'Application Process',
+        question: 'Does applying affect my credit score?',
+        answer: 'The initial application uses a soft credit pull that doesn\'t affect your credit score. Only if you proceed with the offer will a hard pull be performed.'
+      },
+      {
+        category: 'Usage and Features',
+        question: 'Where can I use my Aven Card?',
+        answer: 'You can use your Aven Card anywhere VISA is accepted for purchases. However, it cannot be used at ATMs, casinos, timeshares, money transfer businesses, or cryptocurrency exchanges.'
+      },
+      {
+        category: 'Usage and Features',
+        question: 'Can I get cash advances?',
+        answer: 'No, the Aven Card cannot be used for cash advances or ATM withdrawals.'
+      },
+      {
+        category: 'Usage and Features',
+        question: 'How do I make payments?',
+        answer: 'You can set up automatic payments from your bank account or make manual payments online. You only need to pay the interest on what you use, with no minimum payment required.'
+      },
+      {
+        category: 'Rewards and Benefits',
+        question: 'Do I earn cashback?',
+        answer: 'Yes, you can earn 2% cashback on eligible purchases when autopay is enabled.'
+      },
+      {
+        category: 'Rewards and Benefits',
+        question: 'How do I earn cashback rewards?',
+        answer: 'To earn 2% cashback, you need to enable autopay on your account. The cashback is applied to eligible purchases.'
+      },
+      {
+        category: 'Account Management',
+        question: 'How do I check my balance?',
+        answer: 'You can check your balance online through your Aven account dashboard or by contacting customer service.'
+      },
+      {
+        category: 'Account Management',
+        question: 'Can I view my transactions online?',
+        answer: 'Yes, you can view all your transactions and account activity through your online account dashboard.'
+      },
+      {
+        category: 'Contact and Support',
+        question: 'How do I contact Aven support?',
+        answer: 'You can contact Aven support by calling (888) 966-4655 or emailing support@aven.com.'
+      },
+      {
+        category: 'Contact and Support',
+        question: 'What is the customer service phone number?',
+        answer: 'The Aven customer service phone number is (888) 966-4655.'
+      },
+      {
+        category: 'Advanced Topics',
+        question: 'How does the variable rate work?',
+        answer: 'The variable rate is based on the Prime Rate or Federal Funds Target Rate and can adjust monthly. Your specific rate depends on your credit profile and market conditions.'
+      },
+      {
+        category: 'Advanced Topics',
+        question: 'What happens if I miss a payment?',
+        answer: 'Missing payments can result in late fees and may affect your credit score. It\'s important to make at least the minimum payment by the due date.'
+      },
+      {
+        category: 'Edge Cases',
+        question: 'Can I use my card internationally?',
+        answer: 'The Aven Card cannot be used in foreign countries that are on US sanctions lists. For other international use, please check with customer service.'
+      },
+      {
+        category: 'Edge Cases',
+        question: 'What if I want to close my account?',
+        answer: 'You can close your Aven Card account at any time without fees. Contact customer service to initiate the closure process.'
+      }
+    ];
+
+    return {
+      faqs: faqs,
+      categories: [...new Set(faqs.map(faq => faq.category))],
+      scraped_at: new Date().toISOString()
     };
   }
 
-  // Scrape Aven website for additional information
-  async scrapeAvenWebsite() {
-    const pages = [
-      '/about',
-      '/how-it-works',
-      '/faq',
-      '/support',
-      '/rates',
-      '/application',
-      '/contact'
-    ];
-
-    const scrapedData = [];
-
-    for (const page of pages) {
-      try {
-        console.log(`🔍 Scraping ${this.baseUrl}${page}...`);
-        const response = await axios.get(`${this.baseUrl}${page}`, {
-          headers: this.headers,
-          timeout: 10000
-        });
-
-        // Extract text content (simplified extraction)
-        const content = this.extractTextContent(response.data);
-        
-        if (content.length > 100) {
-          scrapedData.push({
-            url: `${this.baseUrl}${page}`,
-            title: `Aven ${page.replace('/', '').replace('-', ' ')} Page`,
-            content: content.substring(0, 2000), // Limit content size
-            source: 'aven_website',
-            scraped_at: new Date().toISOString()
-          });
-        }
-      } catch (error) {
-        console.log(`⚠️  Could not scrape ${page}: ${error.message}`);
-      }
-    }
-
-    return scrapedData;
-  }
-
-  // Extract text content from HTML (basic implementation)
-  extractTextContent(html) {
-    // Remove script and style tags
-    const cleanHtml = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-                         .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-    
-    // Remove HTML tags and extract text
-    const textContent = cleanHtml.replace(/<[^>]*>/g, ' ')
-                                 .replace(/\s+/g, ' ')
-                                 .trim();
-    
-    return textContent;
-  }
-
-  // Generate comprehensive HELOC information
-  async generateHELOCInfo() {
-    const helocData = [
-      {
-        title: "What is a HELOC (Home Equity Line of Credit)?",
-        content: "A HELOC is a revolving line of credit that allows homeowners to borrow against the equity in their home. Unlike a traditional loan, a HELOC works like a credit card where you can draw funds as needed up to your credit limit, pay it back, and borrow again. The credit limit is typically based on the appraised value of your home minus any outstanding mortgage balance.",
-        category: "HELOC Basics",
-        source: "heloc_education"
-      },
-      {
-        title: "How HELOC Interest Rates Work",
-        content: "HELOC interest rates are typically variable, meaning they can change over time based on market conditions. Most HELOCs are tied to the prime rate, which is influenced by the Federal Reserve's federal funds rate. When the prime rate changes, your HELOC rate will adjust accordingly. Some lenders may offer fixed-rate options for portions of your HELOC balance.",
-        category: "HELOC Rates",
-        source: "heloc_education"
-      },
-      {
-        title: "HELOC vs Home Equity Loan",
-        content: "A HELOC provides flexible access to funds with variable interest rates, while a home equity loan gives you a lump sum with fixed interest rates. HELOCs are better for ongoing expenses or projects with uncertain costs, while home equity loans are ideal for one-time expenses with known amounts. Both use your home as collateral.",
-        category: "HELOC Comparison",
-        source: "heloc_education"
-      },
-      {
-        title: "Tax Benefits of HELOC",
-        content: "Interest paid on a HELOC may be tax-deductible if the funds are used to buy, build, or substantially improve the home that secures the loan. The Tax Cuts and Jobs Act of 2017 suspended the deduction for HELOC interest used for other purposes through 2025. Always consult with a tax professional for guidance specific to your situation.",
-        category: "HELOC Tax Information",
-        source: "heloc_education"
-      },
-      {
-        title: "HELOC Draw Period vs Repayment Period",
-        content: "HELOCs typically have two phases: the draw period (usually 5-10 years) where you can access funds and make interest-only payments, and the repayment period (usually 10-20 years) where you pay both principal and interest. During the draw period, you have flexibility in how much you borrow and repay.",
-        category: "HELOC Terms",
-        source: "heloc_education"
-      },
-      {
-        title: "Aven's Unique HELOC Approach",
-        content: "Aven revolutionizes the traditional HELOC by providing access through a credit card format. This eliminates the need for checks or bank transfers typical with traditional HELOCs. You can use the Aven card anywhere Visa is accepted, making it as convenient as a regular credit card while leveraging your home equity at lower interest rates than unsecured credit cards.",
-        category: "Aven Innovation",
-        source: "aven_advantage"
-      }
-    ];
-
-    return helocData;
-  }
-
-  // Enhanced Aven-specific information
-  async generateAvenInfo() {
-    const avenData = [
-      {
-        title: "Aven's Mission and Vision",
-        content: "Aven aims to democratize access to home equity by making it as easy to use as a credit card. The company believes homeowners should be able to access their home equity simply and affordably, without complex processes or lengthy approval times. Aven combines the flexibility of a credit card with the lower interest rates typically associated with home equity financing.",
-        category: "About Aven",
-        source: "aven_company"
-      },
-      {
-        title: "How Aven Differs from Traditional HELOCs",
-        content: "Traditional HELOCs require checks, bank transfers, or separate loan applications to access funds. Aven simplifies this by providing a Visa credit card that directly accesses your home equity line of credit. This means you can use your home equity at any merchant that accepts Visa, making it incredibly convenient for daily expenses, home improvements, or major purchases.",
-        category: "Aven Advantages",
-        source: "aven_company"
-      },
-      {
-        title: "Aven's Technology Platform",
-        content: "Aven leverages modern technology to streamline the traditionally complex HELOC process. The platform uses automated underwriting, digital document processing, and real-time account management. This allows for faster approvals, easier account management, and a more user-friendly experience compared to traditional banking institutions.",
-        category: "Aven Technology",
-        source: "aven_company"
-      },
-      {
-        title: "Aven's Banking Partnership",
-        content: "Aven partners with Coastal Community Bank, which is FDIC insured and provides the actual credit line. This partnership ensures that customers have the security of working with a regulated financial institution while benefiting from Aven's innovative technology and user experience. The credit card is issued by Coastal Community Bank pursuant to a license from Visa U.S.A., Inc.",
-        category: "Aven Banking",
-        source: "aven_company"
-      },
-      {
-        title: "Aven's Customer Support Philosophy",
-        content: "Aven prioritizes customer education and support throughout the entire process. The company provides comprehensive resources about home equity, responsible borrowing, and financial planning. Customer support is available through multiple channels and focuses on helping customers make informed decisions about their home equity.",
-        category: "Aven Support",
-        source: "aven_company"
-      }
-    ];
-
-    return avenData;
-  }
-
-  // Main scraping function
-  async scrapeAllData() {
-    console.log('🚀 Starting comprehensive Aven and HELOC data collection...');
-    
-    const allData = [];
-    
+  // Combine all data and save to files
+  async scrapeAndSaveAllData() {
     try {
-      // Generate educational HELOC content
-      console.log('📚 Generating HELOC educational content...');
-      const helocInfo = await this.generateHELOCInfo();
-      allData.push(...helocInfo);
+      console.log('🚀 Starting comprehensive Aven data scraping...');
       
-      // Generate Aven-specific content
-      console.log('🏢 Generating Aven company information...');
-      const avenInfo = await this.generateAvenInfo();
-      allData.push(...avenInfo);
+      // Scrape website data
+      const websiteData = await this.scrapeAvenWebsite();
       
-      // Attempt to scrape Aven website (may fail due to rate limiting)
-      console.log('🌐 Attempting to scrape Aven website...');
-      try {
-        const webData = await this.scrapeAvenWebsite();
-        allData.push(...webData);
-      } catch (error) {
-        console.log('⚠️  Website scraping failed, using generated content only');
-      }
+      // Scrape additional sources
+      const additionalData = await this.scrapeAdditionalSources();
       
-      // Save to file
-      const outputPath = path.join(__dirname, '..', '..', 'data', 'scraped', 'aven-enhanced-data.json');
-      await fs.writeFile(outputPath, JSON.stringify({
-        source: "Enhanced Aven and HELOC Information",
-        scraped_at: new Date().toISOString(),
-        total_entries: allData.length,
-        data: allData
-      }, null, 2));
+      // Generate comprehensive FAQs
+      const faqData = this.generateComprehensiveFAQs();
       
-      console.log(`✅ Successfully created ${allData.length} enhanced data entries`);
-      console.log(`📁 Saved to: ${outputPath}`);
+      // Combine all data
+      const comprehensiveData = {
+        website: websiteData,
+        additional: additionalData,
+        faqs: faqData,
+        metadata: {
+          scraped_at: new Date().toISOString(),
+          total_sources: 3,
+          version: '2.0'
+        }
+      };
+
+      // Save comprehensive data
+      const comprehensivePath = path.join(this.dataDir, 'aven-comprehensive-data.json');
+      await fs.writeFile(comprehensivePath, JSON.stringify(comprehensiveData, null, 2));
+      console.log(`✅ Comprehensive data saved to ${comprehensivePath}`);
+
+      // Save individual files for backward compatibility
+      const enhancedPath = path.join(this.dataDir, 'aven-enhanced-data.json');
+      const enhancedData = {
+        data: [
+          ...websiteData.products.map(p => ({ title: p.title, content: p.description, source: 'website', category: 'products' })),
+          ...websiteData.features.map(f => ({ title: 'Feature', content: f, source: 'website', category: 'features' })),
+          ...additionalData.rates_info,
+          ...additionalData.application_process
+        ],
+        scraped_at: new Date().toISOString()
+      };
+      await fs.writeFile(enhancedPath, JSON.stringify(enhancedData, null, 2));
+      console.log(`✅ Enhanced data saved to ${enhancedPath}`);
+
+      // Save FAQ data
+      const faqPath = path.join(this.dataDir, 'aven-detailed-faq.json');
+      await fs.writeFile(faqPath, JSON.stringify(faqData, null, 2));
+      console.log(`✅ FAQ data saved to ${faqPath}`);
+
+      console.log('🎉 All data scraping completed successfully!');
       
-      return allData;
-      
+      return {
+        comprehensive: comprehensiveData,
+        enhanced: enhancedData,
+        faqs: faqData
+      };
     } catch (error) {
-      console.error('❌ Error during data collection:', error);
+      console.error('❌ Data scraping failed:', error);
       throw error;
+    } finally {
+      await this.close();
     }
   }
 }
 
-// Run the scraper
+// Run the scraper if this file is executed directly
 if (require.main === module) {
   const scraper = new AvenDataScraper();
-  scraper.scrapeAllData().catch(console.error);
+  
+  scraper.scrapeAndSaveAllData()
+    .then(() => {
+      console.log('✅ Scraping completed successfully');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('❌ Scraping failed:', error);
+      process.exit(1);
+    });
 }
 
 module.exports = AvenDataScraper; 

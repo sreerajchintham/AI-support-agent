@@ -7,6 +7,8 @@
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
     "setup": "node scripts/setup.js",
+    "setup:enhanced": "node scripts/enhanced-setup.js",
+    "scrape": "node scripts/scrape-aven-data.js",
     "test": "jest"
   },
   "dependencies": {

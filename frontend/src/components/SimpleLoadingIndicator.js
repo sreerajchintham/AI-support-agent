@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
 
-const SimpleLoadingIndicator = ({ message = "AI is thinking" }) => {
+const SimpleLoadingIndicator = ({ message = "Sarah is thinking" }) => {
   const [dots, setDots] = useState('');
 
   useEffect(() => {
@@ -55,18 +55,18 @@ const SimpleLoadingIndicator = ({ message = "AI is thinking" }) => {
       >
         {message}{dots}
       </Typography>
-      <Typography
-        variant="caption"
-        sx={{
-          color: '#999',
-          fontSize: '11px',
-          marginLeft: '8px',
-          paddingLeft: '8px',
-          borderLeft: '1px solid #e0e0e0'
-        }}
-      >
-        Aven AI
-      </Typography>
+              <Typography
+          variant="caption"
+          sx={{
+            color: '#999',
+            fontSize: '11px',
+            marginLeft: '8px',
+            paddingLeft: '8px',
+            borderLeft: '1px solid #e0e0e0'
+          }}
+        >
+          Sarah
+        </Typography>
     </Box>
   );
 };

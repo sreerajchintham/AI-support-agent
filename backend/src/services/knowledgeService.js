@@ -393,32 +393,125 @@ class KnowledgeService {
     }
   }
 
-  // Main function to get AI response with RAG
-  async getAIResponse(query, conversationHistory = []) {
+  // Get AI response using RAG with function calling support
+  async getAIResponse(query, conversationHistory = [], agentName = 'Sarah') {
     await this.ensureInitialized();
     
     try {
-      // Search for relevant information
-      const searchResults = await this.searchKnowledge(query, 5);
+      // Search knowledge base for relevant context
+      const searchResults = await this.searchKnowledge(query);
+      const context = searchResults.map(result => result.content).join('\n\n');
       
-      // Generate context from search results
-      const context = this.generateContext(searchResults);
+      // Check if this is the first message in the conversation
+      const isFirstMessage = conversationHistory.length === 0;
       
-      // Get AI response
-      const response = await openaiService.generateRAGResponse(query, context, conversationHistory);
+      // Generate response with potential function calls
+      const response = await openaiService.generateRAGResponse(query, context, conversationHistory, agentName, isFirstMessage);
       
+      console.log('🔍 Response structure:', JSON.stringify(response, null, 2));
+      
+      // Check if the response includes function calls
+      if (response && response.choices && response.choices[0] && response.choices[0].message && response.choices[0].message.function_call) {
+        const functionCall = response.choices[0].message.function_call;
+        const functionName = functionCall.name;
+        const functionArgs = JSON.parse(functionCall.arguments);
+        
+        console.log(`🔧 Function call detected: ${functionName}`, functionArgs);
+        
+        // Handle function calls
+        let functionResult;
+        switch (functionName) {
+          case 'get_available_slots':
+            functionResult = await this.handleGetAvailableSlots(functionArgs);
+            break;
+          case 'schedule_meeting':
+            functionResult = await this.handleScheduleMeeting(functionArgs);
+            break;
+          default:
+            throw new Error(`Unknown function: ${functionName}`);
+        }
+        
+        // Generate final response with function result
+        const finalResponse = await this.generateFunctionResponse(
+          query, 
+          conversationHistory, 
+          functionName, 
+          functionResult, 
+          agentName
+        );
+        
+        return {
+          message: finalResponse.content,
+          sources: searchResults,
+          functionCall: {
+            name: functionName,
+            result: functionResult
+          }
+        };
+      }
+      
+      // Regular response without function calls
       return {
-        message: response.content,
-        sources: searchResults.map(r => ({
-          title: r.title,
-          source: r.source,
-          relevanceScore: r.score
-        }))
+        message: response.choices[0].message.content,
+        sources: searchResults
       };
+      
     } catch (error) {
       console.error('❌ Failed to get AI response:', error);
-      throw new Error(`Failed to get AI response: ${error.message}`);
+      
+      // Fallback response
+      return {
+        message: `Hi, I'm ${agentName}! I'm sorry, I'm experiencing technical difficulties right now. Please try again in a moment, or contact Aven support directly at (888) 966-4655 or support@aven.com.`,
+        sources: []
+      };
     }
+  }
+
+  // Handle get_available_slots function call
+  async handleGetAvailableSlots(args) {
+    const meetingService = require('./meetingService');
+    const slots = meetingService.getAvailableSlots(args.date);
+    
+    return {
+      success: true,
+      slots: slots,
+      count: slots.length,
+      message: `I found ${slots.length} available meeting slots. Here are the next few options:`
+    };
+  }
+
+  // Handle schedule_meeting function call
+  async handleScheduleMeeting(args) {
+    const meetingService = require('./meetingService');
+    const result = await meetingService.scheduleMeeting(args, args.slotId, args.meetingType);
+    
+    return result;
+  }
+
+  // Generate response after function call
+  async generateFunctionResponse(query, conversationHistory, functionName, functionResult, agentName) {
+    const systemPrompt = `You are ${agentName}, an AI customer support agent for Aven. 
+
+IMPORTANT: You have already introduced yourself. Do NOT introduce yourself again - focus on being helpful without mentioning your name.
+
+You just executed a function call. Provide a natural, helpful response based on the function result. Be conversational and professional.
+
+Function executed: ${functionName}
+Function result: ${JSON.stringify(functionResult, null, 2)}
+
+Respond naturally as if you're having a conversation with the user.`;
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...conversationHistory,
+      { role: 'user', content: query }
+    ];
+
+    return await openaiService.createChatCompletion(messages, {
+      model: 'gpt-4',
+      temperature: 0.7,
+      maxTokens: 800
+    });
   }
 }
 

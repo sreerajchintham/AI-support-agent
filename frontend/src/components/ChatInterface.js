@@ -15,7 +15,7 @@ import { useVapi } from '../context/VapiContext';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
 import WelcomeScreen from './WelcomeScreen';
-import SimpleLoadingIndicator from './SimpleLoadingIndicator';
+import TypingIndicator from './TypingIndicator';
 import VoiceButton from './VoiceButton';
 import VoiceTranscript from './VoiceTranscript';
 import AvenLogo from './AvenLogo';
@@ -70,6 +70,8 @@ function ChatInterface({ onToggleSidebar }) {
   }, [messages.length]);
 
   const showWelcome = messages.length === 0 && !isLoading;
+  
+
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
@@ -98,7 +100,7 @@ function ChatInterface({ onToggleSidebar }) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <AvenLogo size="small" />
             <Typography variant="h6" component="h1" sx={{ fontWeight: 600, color: '#000' }}>
-              AI Support
+              Sarah - AI Support
             </Typography>
           </Box>
           {currentSession && (
@@ -134,20 +136,20 @@ function ChatInterface({ onToggleSidebar }) {
                   {messages.map((message) => (
                     <MessageBubble key={message.id} message={message} />
                   ))}
+                  {isLoading && <TypingIndicator />}
+                  {/* Debug: Show loading state */}
+                  {isLoading && (
+                    <Box sx={{ p: 1, backgroundColor: '#f0f0f0', borderRadius: 1, fontSize: '12px' }}>
+                      Loading: {isLoading ? 'true' : 'false'}
+                    </Box>
+                  )}
                   <div ref={messagesEndRef} />
                 </Box>
               )}
             </Container>
           </Box>
 
-          {/* Loading Indicator */}
-          {isLoading && (
-            <Box sx={{ p: 2, backgroundColor: 'background.paper' }}>
-              <Container maxWidth="md">
-                <SimpleLoadingIndicator />
-              </Container>
-            </Box>
-          )}
+
 
           {/* Error Display */}
           {(error || voiceError) && (

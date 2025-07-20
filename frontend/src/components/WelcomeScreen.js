@@ -86,7 +86,7 @@ function WelcomeScreen({ suggestions, onSendMessage }) {
             fontSize: { xs: '2rem', md: '3rem' },
           }}
         >
-          Welcome to Aven AI Support
+          Welcome! I'm Sarah 👋
         </Typography>
 
         <Typography
@@ -98,7 +98,7 @@ function WelcomeScreen({ suggestions, onSendMessage }) {
             lineHeight: 1.6,
           }}
         >
-          Your intelligent assistant for all things Aven Card. Get instant answers about applications, rates, features, and more.
+          I'm Sarah, your AI assistant for all things Aven Card. I can help you with applications, rates, features, and even schedule meetings with our team!
         </Typography>
 
         {/* Features */}

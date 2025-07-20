@@ -90,10 +90,16 @@ This document provides comprehensive explanations for every file in the AI Custo
   - **Line 31**: Morgan logging middleware in 'combined' format for request logging
   - **Lines 33-35**: Body parsing middleware with 10MB limit for JSON and URL-encoded data
   - **Lines 37-42**: Health check endpoint returning service status and timestamp
-  - **Lines 44-46**: API route mounting for chat and admin endpoints
+  - **Lines 44-46**: API route mounting for chat, admin, and Vapi endpoints
   - **Lines 48-54**: Global error handling middleware with development/production error messaging
-  - **Lines 56-59**: 404 handler for undefined routes
-  - **Lines 61-65**: Server startup with port binding and console logging
+  - **Lines 56-84**: **UPDATED - Non-Blocking Service Initialization**:
+    - **Lines 58-84**: `initializeServices()` function with enhanced error handling and logging
+    - **Lines 70-78**: Vapi initialization with 30-second timeout protection using `Promise.race()`
+    - **Lines 86-92**: **UPDATED - Non-Blocking Server Startup**:
+      - Server starts immediately without waiting for service initialization
+      - Services initialize asynchronously in background
+      - Added comprehensive debug logging for startup process
+      - Improved error handling that doesn't crash the server
 
 ### backend/src/routes/chat.js
 - **File Type**: JavaScript Express Router
@@ -184,6 +190,35 @@ This document provides comprehensive explanations for every file in the AI Custo
     - **Lines 116-120**: Metadata extraction and formatting
   - **Lines 125-150**: `getIndexStats()` method - Database statistics and health check
   - **Lines 155-169**: Utility methods for vector operations and cleanup
+
+### backend/src/services/vapiService.js
+- **File Type**: JavaScript Service Class
+- **Purpose**: Vapi voice chat integration service for assistant management and function calls
+- **Detailed Explanation** (261 lines):
+  - **Lines 1-10**: Import statements for Vapi client, configuration, and knowledge service
+  - **Lines 12-26**: **UPDATED - Enhanced Service Initialization**:
+    - **Lines 15-25**: `initialize()` method with comprehensive debug logging
+    - **Lines 22-24**: Added detailed progress logging throughout initialization process
+    - **Lines 25-26**: Explicit completion logging to indicate successful initialization
+  - **Lines 30-90**: **UPDATED - Assistant Creation with Debug Logging**:
+    - **Lines 32-35**: Added configuration building debug log
+    - **Lines 82-85**: Added Vapi API call debug logging
+    - **Lines 86-88**: Added success confirmation logging before returning assistant ID
+  - **Lines 40-80**: Assistant configuration object with comprehensive settings:
+    - **Lines 45-50**: System prompt optimized for voice conversations (under 50 words)
+    - **Lines 55-60**: Voice configuration using 11Labs with specified voice ID
+    - **Lines 65-75**: Call management settings (timeout, recording, background sound)
+    - **Lines 76-80**: Function definitions for knowledge base search integration
+  - **Lines 95-120**: Assistant management methods (get, update, delete)
+  - **Lines 125-180**: `handleFunctionCall()` method - Webhook function processing
+    - **Lines 130-140**: Function routing and error handling
+    - **Lines 145-160**: Knowledge search integration with voice-optimized responses
+    - **Lines 165-180**: Error recovery and fallback messaging
+  - **Lines 185-230**: `searchKnowledge()` method - Voice-optimized knowledge retrieval
+    - **Lines 190-200**: Query processing with category filtering
+    - **Lines 205-215**: Response formatting for voice delivery (shortened for speech)
+    - **Lines 220-230**: Confidence scoring and source attribution
+  - **Lines 235-261**: Utility methods for call management and public configuration
 
 ### backend/src/services/knowledgeService.js
 - **File Type**: JavaScript Service Class
